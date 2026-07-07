@@ -25,6 +25,15 @@ Bulk work goes through `queue_submit` (run `ollamaq daemon` to drain it); only
 `ollama_quick`'s small capped output and the digests ever return to the model's
 context — the token-economy contract holds across every client.
 
+## Security — verifier commands over MCP
+
+A job spec's `verifier.cmd` (gen_test mode) runs an **arbitrary local subprocess**.
+That's fine from the trusted CLI, but the MCP server may be reachable by a
+less-trusted client, so `queue_submit` **refuses any spec with a verifier by
+default**. To allow verifier (gen_test) jobs over MCP, set
+`OLLAMAQ_MCP_ALLOW_VERIFIER=1` in the server's `env` — and only if you trust the
+client. Never expose this server to an untrusted network.
+
 ## Finding config, queue, results — usually zero config
 
 The server resolves those roots in this order:

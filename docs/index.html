@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tandem-tokens — local GPU in tandem with cloud models</title>
+<style>
+:root{
+  --bg:#faf9f7; --card:#ffffff; --ink:#1a1a18; --muted:#6b6a64; --faint:#96958d;
+  --line:#e7e5df; --accent:#0f6e56; --accent-bg:#e1f5ee; --warn:#854f0b; --warn-bg:#faeeda;
+  --radius:10px; --mono:ui-monospace,"SFMono-Regular",Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#181816; --card:#232320; --ink:#ece9e2; --muted:#a3a199; --faint:#77756d;
+  --line:#33322d; --accent:#5dcaa5; --accent-bg:#0f3a2f; --warn:#efb45c; --warn-bg:#3a2c10;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;
+  font-size:16px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:820px;margin:0 auto;padding:3rem 1.25rem 4rem}
+h1{font-size:34px;font-weight:600;letter-spacing:-0.02em;margin:0 0 .4rem}
+h2{font-size:21px;font-weight:600;margin:2.75rem 0 1rem;letter-spacing:-0.01em}
+p{margin:0 0 1rem}.muted{color:var(--muted)}.faint{color:var(--faint)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.88em;background:var(--accent-bg);color:var(--accent);
+  padding:.1em .4em;border-radius:5px}
+.lede{font-size:19px;color:var(--muted);margin-bottom:1.75rem}
+.tag{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--accent);
+  background:var(--accent-bg);padding:.25em .7em;border-radius:99px;margin-bottom:1.25rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1.5rem}
+.ctrls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem 1.5rem;margin-bottom:1.25rem}
+.ctrl label{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:5px}
+.ctrl label b{color:var(--ink);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);height:22px}
+.selrow{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+.selrow .lab{font-size:13px;color:var(--muted);margin-bottom:5px}
+select{width:100%;font-family:var(--sans);font-size:14px;padding:8px 10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);color:var(--ink)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1.25rem}
+.metric{border-radius:var(--radius);padding:.9rem 1rem;background:var(--bg)}
+.metric .k{font-size:12.5px;color:var(--muted)}
+.metric .v{font-size:25px;font-weight:600;margin-top:2px;letter-spacing:-0.01em}
+.metric.hero{background:var(--accent-bg)}.metric.hero .k,.metric.hero .v{color:var(--accent)}
+.takeaway{font-size:13.5px;color:var(--muted);margin:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+@media (max-width:560px){.selrow,.grid2{grid-template-columns:1fr}}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:.5rem 0 1rem}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:13px}
+.note{border-left:3px solid var(--warn);background:var(--warn-bg);padding:.9rem 1.1rem;border-radius:0 8px 8px 0}
+.note .h{color:var(--warn);font-weight:600;margin-bottom:.25rem}
+ul{margin:0 0 1rem;padding-left:1.2rem}li{margin:.3rem 0}
+pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;overflow:auto;
+  font-family:var(--mono);font-size:13px;line-height:1.5}
+.foot{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--line);color:var(--faint);font-size:13.5px}
+.pill{display:inline-block;font-size:12px;font-family:var(--mono);color:var(--muted);
+  border:1px solid var(--line);border-radius:99px;padding:.2em .7em;margin:0 .3em .3em 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <span class="tag">local + cloud, in tandem</span>
+  <h1>tandem-tokens</h1>
+  <p class="lede">Run bulk, mechanical, and generate-and-test work on your own GPU
+  so premium Claude tokens are spent only on orchestration and the final clean-up.
+  Your spare compute subsidizes the cloud bill.</p>
+
+  <h2>What would it save you?</h2>
+  <p class="muted" style="margin-top:-.5rem">Grounded in measured throughput (gemma2 ~88 tok/s,
+  qwen3 ~115, qwen2.5-14b ~55 on an RTX 5080) and current per-model pricing. Drag to explore.</p>
+
+  <div class="card">
+    <div class="ctrls">
+      <div class="ctrl"><label>items in the job <b id="o-items">2,000</b></label>
+        <input type="range" id="items" min="20" max="20000" step="20" value="2000"></div>
+      <div class="ctrl"><label>input tokens / item <b id="o-tin">40</b></label>
+        <input type="range" id="tin" min="10" max="600" step="5" value="40"></div>
+      <div class="ctrl"><label>output tokens / item <b id="o-tout">40</b></label>
+        <input type="range" id="tout" min="10" max="600" step="5" value="40"></div>
+    </div>
+    <div class="selrow">
+      <div><div class="lab">local model (your GPU)</div>
+        <select id="local">
+          <option value="gemma2:9b">gemma2:9b — 88 tok/s ×4</option>
+          <option value="qwen3:8b" selected>qwen3:8b — 115 tok/s ×4</option>
+          <option value="qwen2.5-14b">qwen2.5-14b — 55 tok/s ×2</option>
+        </select></div>
+      <div><div class="lab">cloud model it replaces</div>
+        <select id="cloud">
+          <option value="opus" selected>Claude Opus 4.8 — $5 / $25</option>
+          <option value="sonnet">Claude Sonnet 5 — $3 / $15</option>
+          <option value="haiku">Claude Haiku 4.5 — $1 / $5</option>
+          <option value="fable">Claude Fable 5 — $10 / $50</option>
+        </select></div>
+    </div>
+    <div class="metrics">
+      <div class="metric hero"><div class="k">cloud cost avoided</div><div class="v" id="m-avoided">$2.40</div></div>
+      <div class="metric"><div class="k">local electricity</div><div class="v" id="m-power">$0.001</div></div>
+      <div class="metric"><div class="k">local wall time</div><div class="v" id="m-time">2.9 min</div></div>
+      <div class="metric"><div class="k">net saved this job</div><div class="v" id="m-net">$2.40</div></div>
+    </div>
+    <p class="takeaway" id="takeaway"></p>
+  </div>
+
+  <h2>How it works</h2>
+  <p>Claude turns a bulk request into a validated <em>job spec</em>, a local daemon drains it
+  through Ollama, and every worker output stays on disk. Claude only ever reads a compact
+  (&le;8&nbsp;KB) digest — so the map phase runs for zero Claude tokens. Three job modes:</p>
+  <table>
+    <tr><th>mode</th><th>what it does</th></tr>
+    <tr><td><code>map</code></td><td>chunk inputs, run a template per chunk, merge — bulk clean / extract / classify / summarize / codegen.</td></tr>
+    <tr><td><code>gen_test</code></td><td>generate N candidates, score each with a verifier, keep the best, feed survivors back — an autoresearch loop.</td></tr>
+    <tr><td><code>pipeline</code></td><td>chained stages with per-stage filters — e.g. a cheap model triages, a bigger model cleans only the flagged rows.</td></tr>
+  </table>
+  <p class="faint" style="font-size:13.5px">Savings are map-phase only. A Claude reduce/clean pass over
+  the results still costs tokens — the win scales with keeping that pass small (review a digest and write a
+  fix-up, not re-read every row).</p>
+
+  <h2>Requirements</h2>
+  <ul>
+    <li><b>Python 3.11+</b> and <b>Ollama</b>, plus the local models you route to.</li>
+    <li><b>~16&nbsp;GB VRAM</b> to run 14B models fully on GPU; smaller models need less. The
+      <code>ollamaq recommend</code> command tells you exactly what fits vs. spills to CPU.</li>
+    <li>An <b>NVIDIA GPU</b> for the <code>recommend</code> feature specifically (via nvidia-smi).
+      The harness itself runs on anything Ollama supports — CPU, AMD, Apple Silicon — just without GPU-fit advice.</li>
+  </ul>
+
+  <h2>Supported platforms</h2>
+  <div class="grid2">
+    <div class="card"><div class="lab" style="font-size:13px;color:var(--muted);margin-bottom:.4rem">operating system</div>
+      <p style="margin:0"><b>Windows 11</b> — developed and tested here (206-test suite green).<br>
+      <b>Linux / macOS</b> — portable Python (file queue, httpx, subprocess), expected to work but
+      <span class="faint">not yet verified</span>; the Task Scheduler daemon recipe and GPU detection are Windows/NVIDIA-first.</p></div>
+    <div class="card"><div class="lab" style="font-size:13px;color:var(--muted);margin-bottom:.4rem">runtimes tested</div>
+      <span class="pill">Python 3.11</span><span class="pill">Python 3.13</span><span class="pill">Ollama 0.31</span>
+      <span class="pill">RTX 5080 / 16&nbsp;GB</span></div>
+  </div>
+
+  <h2>LLM platform hooks &amp; MCP</h2>
+  <p>One standard stdio MCP server, five tools, usable from any MCP client — the server command is identical
+  everywhere; only the client config format differs.</p>
+  <table>
+    <tr><th>MCP tool</th><th>purpose</th></tr>
+    <tr><td><code>ollama_quick</code></td><td>one-shot local generation, output capped (~2k tokens) so it never floods context.</td></tr>
+    <tr><td><code>queue_submit</code></td><td>enqueue a batch job for the daemon; returns a job id.</td></tr>
+    <tr><td><code>queue_status</code></td><td>queue state — counts, or one job's detail.</td></tr>
+    <tr><td><code>queue_digest</code></td><td>a finished job's &le;8&nbsp;KB digest.</td></tr>
+    <tr><td><code>recommend_models</code></td><td>GPU-aware advice: which local models fit this machine vs. spill.</td></tr>
+  </table>
+  <p>Clients: <span class="pill">Claude Code</span><span class="pill">Claude Desktop</span>
+  <span class="pill">OpenAI Codex</span><span class="pill">xAI Grok</span> — plus the CLI and the
+  <code>/offload</code> &amp; <code>/harvest</code> skills.</p>
+
+  <h2>Security</h2>
+  <div class="note">
+    <div class="h">Verifier commands run arbitrary subprocesses.</div>
+    <p style="margin:0">A job spec's <code>verifier.cmd</code> (gen_test) executes a local command — powerful,
+    but it means submitting a spec is submitting code to run. From the CLI that's you on your own machine.
+    Over MCP the server may be reachable by a less-trusted client, so <b>verifier jobs are refused over MCP by
+    default</b>; set <code>OLLAMAQ_MCP_ALLOW_VERIFIER=1</code> to allow them only if you trust the client.
+    Don't expose the MCP server to an untrusted network.</p>
+  </div>
+
+  <h2>Install</h2>
+  <pre>git clone https://github.com/BI-Blitzer/tandem-tokens
+cd tandem-tokens
+python -m pip install -e ".[dev]"
+
+ollamaq doctor                 # check config + Ollama + model coverage
+ollamaq recommend              # what fits your GPU
+ollamaq run examples/support_triage.job.json   # a real bulk job
+ollamaq score                  # cumulative tokens run for $0, cloud spend avoided</pre>
+
+  <div class="foot">
+    <a href="https://github.com/BI-Blitzer/tandem-tokens">github.com/BI-Blitzer/tandem-tokens</a>
+    &nbsp;·&nbsp; MIT licensed &nbsp;·&nbsp; savings figures are estimates (cloud tokenizers differ; map-phase only)
+  </div>
+
+</div>
+
+<script>
+(function(){
+  var LOCAL={"gemma2:9b":{t:88,p:4,w:300},"qwen3:8b":{t:115,p:4,w:300},"qwen2.5-14b":{t:55,p:2,w:320}};
+  var CLOUD={opus:{i:5,o:25,n:"Opus 4.8"},sonnet:{i:3,o:15,n:"Sonnet 5"},haiku:{i:1,o:5,n:"Haiku 4.5"},fable:{i:10,o:50,n:"Fable 5"}};
+  var LOAD=15, KWH=0.15;
+  function $(id){return document.getElementById(id);}
+  function money(v){ if(v>=1) return "$"+v.toFixed(2); if(v>=0.01) return "$"+v.toFixed(3); return "$"+v.toFixed(4); }
+  function calc(){
+    var items=+$("items").value, tin=+$("tin").value, tout=+$("tout").value;
+    var L=LOCAL[$("local").value], C=CLOUD[$("cloud").value];
+    var totOut=items*tout;
+    var avoided=(items*tin)/1e6*C.i + totOut/1e6*C.o;
+    var secs=totOut/(L.t*L.p)+LOAD;
+    var power=L.w*(secs/3600)/1000*KWH;
+    $("o-items").textContent=items.toLocaleString();
+    $("o-tin").textContent=tin; $("o-tout").textContent=tout;
+    $("m-avoided").textContent=money(avoided);
+    $("m-power").textContent=money(power);
+    $("m-time").textContent=(secs/60).toFixed(1)+" min";
+    $("m-net").textContent=money(avoided-power);
+    var ratio=power>0?Math.round(avoided/power):0;
+    $("takeaway").textContent="This job costs about "+money(power)+" in electricity and avoids "+money(avoided)+" on "+C.n+" — roughly "+ratio.toLocaleString()+"× cheaper. Map-phase only; a Claude reduce pass over the results still costs tokens.";
+  }
+  ["items","tin","tout","local","cloud"].forEach(function(id){$(id).addEventListener("input",calc);});
+  calc();
+})();
+</script>
+</body>
+</html>

@@ -82,6 +82,32 @@ def test_submit_invalid_spec_raises(tmp_path: Path) -> None:
         mcp_core.submit(q, _cfg(), {"name": "bad"})  # missing input/prompt
 
 
+_VERIFIER_SPEC = {
+    "name": "g", "mode": "gen_test", "model": "gemma2:9b",
+    "input": {"kind": "inline", "values": [1], "chunk": {"strategy": "rows", "size": 1}},
+    "prompt": {"template": "{{chunk}}"},
+    "verifier": {"cmd": "python evil.py"},
+}
+
+
+def test_mcp_submit_blocks_verifier_by_default(tmp_path: Path, monkeypatch) -> None:
+    import pytest
+    from ollamaq.errors import OllamaqError
+
+    monkeypatch.delenv("OLLAMAQ_MCP_ALLOW_VERIFIER", raising=False)
+    q = JobQueue(tmp_path / "queue")
+    with pytest.raises(OllamaqError, match="arbitrary subprocess"):
+        mcp_core.submit(q, _cfg(), _VERIFIER_SPEC)
+    assert q.find("g") is None  # not enqueued
+
+
+def test_mcp_submit_allows_verifier_when_opted_in(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("OLLAMAQ_MCP_ALLOW_VERIFIER", "1")
+    q = JobQueue(tmp_path / "queue")
+    jid = mcp_core.submit(q, _cfg(), _VERIFIER_SPEC, job_id="g1")
+    assert jid == "g1" and q.find("g1") is not None
+
+
 def test_status_single_job(tmp_path: Path) -> None:
     q = JobQueue(tmp_path / "queue")
     mcp_core.submit(q, _cfg(), SPEC, job_id="j1")

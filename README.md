@@ -19,7 +19,17 @@ and Claude-side integration (`CLAUDE.md` policy + `/offload` & `/harvest` skills
 | [PLAN.md](PLAN.md) | Full architecture + the phase-by-phase build log (design, decisions, live results). |
 | [CLAUDE.md](CLAUDE.md) | Delegation policy — when Claude should/shouldn't offload, routing, the digest-only contract. |
 | [MCP.md](MCP.md) | Using the MCP server from Claude Code/Desktop, Codex, Grok, and other MCP clients. |
+| [docs/index.html](docs/index.html) | A self-contained landing page: interactive savings calculator, requirements, platform support, MCP hooks. Open locally or serve via GitHub Pages (`/docs`). |
 | this README | Install, commands, workflow. |
+
+## Security
+
+A job spec's `verifier.cmd` (gen_test mode) runs an **arbitrary local subprocess** —
+powerful, but it means submitting a spec is submitting code to run. From the CLI
+that's you on your own machine. Over MCP the server may be reachable by a
+less-trusted client, so **verifier jobs are refused over MCP by default**; set
+`OLLAMAQ_MCP_ALLOW_VERIFIER=1` to allow them only if you trust the client. Do not
+expose the MCP server to an untrusted network.
 
 Licensed under the [MIT License](LICENSE).
 

@@ -9,6 +9,7 @@ the ONE tool that returns model text to Claude, so it hard-caps its output.
 
 from __future__ import annotations
 
+import os
 import time
 from pathlib import Path
 from typing import Any, Optional
@@ -45,11 +46,22 @@ async def quick(cfg: Config, prompt: str, model: Optional[str] = None,
 def submit(queue: JobQueue, cfg: Config, jobspec: dict,
            job_id: Optional[str] = None) -> str:
     """Validate a job spec dict and enqueue it. Returns the job id. Raises
-    OllamaqError on an invalid spec (the MCP wrapper converts to a tool error)."""
+    OllamaqError on an invalid spec (the MCP wrapper converts to a tool error).
+
+    Security: a job spec's `verifier.cmd` (map/gen_test) or a pipeline stage runs
+    an arbitrary local subprocess. That's fine from the trusted CLI, but the MCP
+    server may be reachable by a less-trusted client, so verifier execution over
+    MCP is BLOCKED unless OLLAMAQ_MCP_ALLOW_VERIFIER=1 is set. See MCP.md."""
     try:
         spec = JobSpec.model_validate(jobspec)
     except Exception as exc:  # pydantic ValidationError or other
         raise OllamaqError(f"invalid job spec: {exc}") from exc
+    if spec.verifier is not None and os.environ.get("OLLAMAQ_MCP_ALLOW_VERIFIER") != "1":
+        raise OllamaqError(
+            "job spec has a verifier command, which runs an arbitrary subprocess; "
+            "refusing to enqueue it over MCP. Set OLLAMAQ_MCP_ALLOW_VERIFIER=1 to "
+            "allow verifier jobs from this server (only if you trust the client)."
+        )
     jid = job_id or f"{spec.name}-{int(time.time())}"
     queue.submit(jid, spec.model_dump(mode="json", by_alias=True))
     return jid
