@@ -92,12 +92,35 @@ async def test_on_schema_fail_fail_stops_immediately() -> None:
 
 
 @respx.mock
-async def test_transport_error_short_circuits() -> None:
-    respx.post(f"{BASE}/api/generate").mock(side_effect=httpx.ConnectError("down"))
-    run = await run_job(_cfg(), _spec(retry={"max_attempts": 3}), [(0, "s", "c")])
+async def test_persistent_transport_error_fails_after_retries() -> None:
+    route = respx.post(f"{BASE}/api/generate").mock(side_effect=httpx.ConnectError("down"))
+    spec = _spec(retry={"max_attempts": 3, "transient_retries": 2})
+    run = await run_job(_cfg(), spec, [(0, "s", "c")])
     assert run.fail_count == 1
-    assert run.results[0].attempts == 1
+    assert run.results[0].attempts == 1        # schema attempts unchanged
     assert "generate failed" in run.results[0].error
+    assert route.call_count == 3               # 1 try + 2 transient retries
+
+
+@respx.mock
+async def test_transient_error_then_recovers() -> None:
+    responses = [httpx.ConnectError("down"), httpx.ConnectError("down"),
+                 _resp('{"id": 5}')]
+    respx.post(f"{BASE}/api/generate").mock(side_effect=responses)
+    spec = _spec(retry={"max_attempts": 3, "transient_retries": 2})
+    run = await run_job(_cfg(), spec, [(0, "s", "c")])
+    assert run.ok_count == 1
+    assert run.results[0].value == {"id": 5}
+    assert run.results[0].attempts == 1        # recovered within the first schema attempt
+
+
+@respx.mock
+async def test_transient_retries_zero_fails_immediately() -> None:
+    route = respx.post(f"{BASE}/api/generate").mock(side_effect=httpx.ConnectError("down"))
+    spec = _spec(retry={"max_attempts": 3, "transient_retries": 0})
+    run = await run_job(_cfg(), spec, [(0, "s", "c")])
+    assert run.fail_count == 1
+    assert route.call_count == 1               # no transient retry
 
 
 @respx.mock

@@ -10,6 +10,13 @@ import pytest
 from ollamaq.config import Config
 
 
+@pytest.fixture(autouse=True)
+def _no_transient_backoff(monkeypatch):
+    """Zero the worker's transient-retry backoff so tests never actually sleep."""
+    import ollamaq.worker as worker
+    monkeypatch.setattr(worker, "TRANSIENT_BACKOFF_BASE", 0.0)
+
+
 VALID_YAML = textwrap.dedent(
     """
     ollama:

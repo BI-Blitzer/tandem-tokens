@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from .cache import Cache, make_key as cache_make_key
-from .client import OllamaClient
+from .client import GenerateResult, OllamaClient
 from .config import Config
 from .enforce import build_repair_prompt, process_attempt
 from .errors import OllamaqError
@@ -101,6 +101,30 @@ def render_prompt(template: str, chunk_text: str) -> str:
     return template.replace("{{chunk}}", chunk_text)
 
 
+# Base backoff (seconds) between transient-error retries; grows exponentially.
+# A module constant so tests can zero it out (see conftest).
+TRANSIENT_BACKOFF_BASE = 0.5
+
+
+async def _generate_retrying(client: OllamaClient, model: str, prompt: str, *,
+                             system, schema, options, images,
+                             transient_retries: int) -> GenerateResult:
+    """client.generate with bounded retry on TRANSPORT errors (connection resets,
+    HTTP 5xx) — common while a model cold-loads. Schema failures are NOT retried
+    here; they flow up to the repair-retry loop. Re-raises after the last retry."""
+    delay = TRANSIENT_BACKOFF_BASE
+    for attempt in range(transient_retries + 1):
+        try:
+            return await client.generate(model, prompt, system=system, schema=schema,
+                                         options=options, images=images)
+        except OllamaqError:
+            if attempt >= transient_retries:
+                raise
+            if delay > 0:
+                await asyncio.sleep(delay)
+            delay *= 2
+
+
 async def _run_item(
     client: OllamaClient,
     model: str,
@@ -139,12 +163,13 @@ async def _run_item(
 
     for attempt in range(1, spec.retry.max_attempts + 1):
         try:
-            gen = await client.generate(
-                model, prompt, system=spec.prompt.system, schema=schema,
-                options=options, images=images
+            gen = await _generate_retrying(
+                client, model, prompt, system=spec.prompt.system, schema=schema,
+                options=options, images=images,
+                transient_retries=spec.retry.transient_retries,
             )
         except OllamaqError as exc:
-            # transport/HTTP errors: record and stop retrying (won't self-heal)
+            # transport/HTTP error persisted through all transient retries.
             return ItemResult(index=index, source=source, ok=False,
                               error=f"generate failed: {exc}", attempts=attempt,
                               prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
@@ -178,9 +203,10 @@ async def _run_item(
         if escalate_num_ctx is not None:
             esc_options["num_ctx"] = escalate_num_ctx
         try:
-            gen = await client.generate(escalate_model, initial_prompt,
-                                        system=spec.prompt.system, schema=schema,
-                                        options=esc_options, images=images)
+            gen = await _generate_retrying(
+                client, escalate_model, initial_prompt, system=spec.prompt.system,
+                schema=schema, options=esc_options, images=images,
+                transient_retries=spec.retry.transient_retries)
             prompt_tokens += gen.prompt_tokens
             completion_tokens += gen.completion_tokens
             eval_ns += gen.eval_duration_ns

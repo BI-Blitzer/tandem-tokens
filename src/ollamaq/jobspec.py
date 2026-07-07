@@ -130,7 +130,8 @@ class RetrySpec(BaseModel):
 
     max_attempts: int = Field(default=3, ge=1)
     on_schema_fail: OnSchemaFail = OnSchemaFail.repair_then_retry
-    escalate_to: Optional[str] = None  # [Phase 6] bigger model for failed items
+    escalate_to: Optional[str] = None  # bigger model for persistent failures
+    transient_retries: int = Field(default=2, ge=0)  # retries on connection/HTTP errors
 
 
 class LoopSpec(BaseModel):
