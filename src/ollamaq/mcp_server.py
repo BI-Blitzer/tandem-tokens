@@ -28,17 +28,30 @@ from .config import load_config
 from .errors import OllamaqError
 from .queue import JobQueue
 
+def _auto_home() -> Optional[Path]:
+    """Locate the project root from this file's location (editable install:
+    <root>/src/ollamaq/mcp_server.py), so the server works from any client and
+    any working directory with no configuration. None if config/ isn't there
+    (e.g. a wheel install into site-packages) — then env vars / cwd take over."""
+    root = Path(__file__).resolve().parents[2]
+    return root if (root / "config" / "models.yaml").is_file() else None
+
+
+# Precedence for where the server finds config/queue/results:
+#   explicit OLLAMAQ_* env var  ->  $OLLAMAQ_HOME  ->  auto-detected project root
+#   ->  the current working directory.
+# So a project-scoped .mcp.json needs no hardcoded path (auto-detect handles it),
+# while Codex/Grok/Desktop launching from elsewhere can set one OLLAMAQ_HOME.
+_HOME = os.environ.get("OLLAMAQ_HOME")
+_HOME_PATH = Path(_HOME) if _HOME else _auto_home()
+
+
 def _root(env_key: str, sub: str) -> Path:
-    """Resolve a data root: explicit env var wins, else OLLAMAQ_HOME/<sub>, else
-    <sub> relative to CWD. One OLLAMAQ_HOME configures the whole server, which
-    matters when a client (Claude Desktop, Codex, Grok) launches it from an
-    arbitrary working directory."""
     explicit = os.environ.get(env_key)
     if explicit:
         return Path(explicit)
-    home = os.environ.get("OLLAMAQ_HOME")
-    if home:
-        return Path(home) / sub
+    if _HOME_PATH:
+        return _HOME_PATH / sub
     return Path(sub)
 
 
@@ -49,7 +62,10 @@ mcp = FastMCP("ollamaq")
 
 
 def _cfg():
-    # Load per-call so a config edit doesn't require a server restart.
+    # Load per-call so a config edit doesn't require a server restart. Prefer the
+    # resolved home's config; else fall back to load_config's own env/cwd search.
+    if _HOME_PATH:
+        return load_config(_HOME_PATH / "config" / "models.yaml")
     return load_config()
 
 

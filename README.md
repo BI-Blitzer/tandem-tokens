@@ -21,6 +21,8 @@ and Claude-side integration (`CLAUDE.md` policy + `/offload` & `/harvest` skills
 | [MCP.md](MCP.md) | Using the MCP server from Claude Code/Desktop, Codex, Grok, and other MCP clients. |
 | this README | Install, commands, workflow. |
 
+Licensed under the [MIT License](LICENSE).
+
 ## Claude workflow
 
 In a Claude Code session in this repo: **`/offload`** turns a bulk task into a validated

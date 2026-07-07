@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import ollamaq.gpu as gpu_mod
 from ollamaq.config import Config
-from ollamaq.gpu import GpuInfo, ModelFit, recommend
+from ollamaq.gpu import GpuInfo, ModelFit, _find_nvidia_smi, recommend
 
 
 def _cfg() -> Config:
@@ -66,3 +67,21 @@ def test_format_marks_fit_and_spill() -> None:
     out = recommend(_cfg(), SIZES, _gpu(16303)).format()
     assert "FITS" in out and "SPILL" in out
     assert "[disabled]" in out  # gemma2:27b
+
+
+def test_find_nvidia_smi_falls_back_when_not_on_path(tmp_path, monkeypatch) -> None:
+    # simulate a stripped PATH (which() finds nothing) but a known install path present
+    fake = tmp_path / "System32" / "nvidia-smi.exe"
+    fake.parent.mkdir(parents=True)
+    fake.write_text("", encoding="utf-8")
+    monkeypatch.setattr(gpu_mod.shutil, "which", lambda _: None)
+    monkeypatch.setenv("SystemRoot", str(tmp_path))
+    assert _find_nvidia_smi() == str(fake)
+
+
+def test_find_nvidia_smi_none_when_absent(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(gpu_mod.shutil, "which", lambda _: None)
+    monkeypatch.setenv("SystemRoot", str(tmp_path))  # no nvidia-smi anywhere
+    # (the hardcoded /usr and Program Files paths won't exist in the test sandbox)
+    result = _find_nvidia_smi()
+    assert result is None or result.endswith("nvidia-smi") or result.endswith("nvidia-smi.exe")

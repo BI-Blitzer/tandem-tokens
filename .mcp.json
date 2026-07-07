@@ -2,10 +2,7 @@
   "mcpServers": {
     "ollamaq": {
       "command": "python",
-      "args": ["-m", "ollamaq.mcp_server"],
-      "env": {
-        "OLLAMAQ_HOME": "C:\\_Work\\Claude_Coded\\endless-code"
-      }
+      "args": ["-m", "ollamaq.mcp_server"]
     }
   }
 }

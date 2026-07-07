@@ -11,6 +11,7 @@ degrades to config-size-only advice.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -33,9 +34,24 @@ class GpuInfo:
         return self.total_mb * USABLE_VRAM_FRACTION
 
 
+def _find_nvidia_smi() -> Optional[str]:
+    """Locate nvidia-smi, tolerating a stripped PATH (some MCP clients launch the
+    server with a minimal environment). Falls back to the standard install paths."""
+    exe = shutil.which("nvidia-smi")
+    if exe:
+        return exe
+    candidates = [
+        os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32",
+                     "nvidia-smi.exe"),
+        r"C:\Program Files\NVIDIA Corporation\NVSMI\nvidia-smi.exe",
+        "/usr/bin/nvidia-smi",
+    ]
+    return next((c for c in candidates if os.path.isfile(c)), None)
+
+
 def detect_nvidia_gpu() -> Optional[GpuInfo]:
     """First NVIDIA GPU via nvidia-smi, or None if unavailable/non-NVIDIA."""
-    exe = shutil.which("nvidia-smi")
+    exe = _find_nvidia_smi()
     if not exe:
         return None
     try:

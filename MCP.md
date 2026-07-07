@@ -25,30 +25,34 @@ Bulk work goes through `queue_submit` (run `ollamaq daemon` to drain it); only
 `ollama_quick`'s small capped output and the digests ever return to the model's
 context — the token-economy contract holds across every client.
 
-## One env var configures everything: `OLLAMAQ_HOME`
+## Finding config, queue, results — usually zero config
 
-Because different clients launch the server from different working directories,
-point everything at the project with **`OLLAMAQ_HOME`**. The server then uses
-`OLLAMAQ_HOME/config/models.yaml`, `OLLAMAQ_HOME/queue`, `OLLAMAQ_HOME/results`.
-(Individual `OLLAMAQ_CONFIG` / `OLLAMAQ_QUEUE` / `OLLAMAQ_RESULTS` override if set.)
+The server resolves those roots in this order:
 
-Assumed project path below: `C:\_Work\Claude_Coded\endless-code`.
+1. explicit `OLLAMAQ_CONFIG` / `OLLAMAQ_QUEUE` / `OLLAMAQ_RESULTS`
+2. `$OLLAMAQ_HOME/{config/models.yaml,queue,results}`
+3. **auto-detected project root** — from the installed source location (editable
+   install: `<root>/src/ollamaq/`), so it works with no configuration at all
+4. the current working directory
+
+Because of (3), an **editable install** (`pip install -e .`) needs **no path
+anywhere** — the server finds its own project. Set `OLLAMAQ_HOME` only for a
+non-editable/wheel install or when you want config/results somewhere specific.
+
+The examples below use `<PROJECT>` for the project path; drop the whole `env`
+block entirely if you did an editable install.
 
 ---
 
 ## Claude Code
 
-Project-scoped `.mcp.json` (already in this repo) or user config. Restart Claude
-Code after adding:
+Project-scoped `.mcp.json` (already in this repo) — no path needed for an editable
+install. Restart Claude Code after adding:
 
 ```json
 {
   "mcpServers": {
-    "ollamaq": {
-      "command": "python",
-      "args": ["-m", "ollamaq.mcp_server"],
-      "env": { "OLLAMAQ_HOME": "C:\\_Work\\Claude_Coded\\endless-code" }
-    }
+    "ollamaq": { "command": "python", "args": ["-m", "ollamaq.mcp_server"] }
   }
 }
 ```
@@ -56,7 +60,8 @@ Code after adding:
 ## Claude Desktop
 
 Edit `claude_desktop_config.json`
-(`%APPDATA%\Claude\claude_desktop_config.json` on Windows), same shape:
+(`%APPDATA%\Claude\claude_desktop_config.json` on Windows), same shape. Add an
+`env` with `OLLAMAQ_HOME` only if the server can't auto-detect (non-editable install):
 
 ```json
 {
@@ -64,7 +69,7 @@ Edit `claude_desktop_config.json`
     "ollamaq": {
       "command": "python",
       "args": ["-m", "ollamaq.mcp_server"],
-      "env": { "OLLAMAQ_HOME": "C:\\_Work\\Claude_Coded\\endless-code" }
+      "env": { "OLLAMAQ_HOME": "<PROJECT>" }
     }
   }
 }
@@ -80,16 +85,17 @@ Codex reads `~/.codex/config.toml`. MCP servers go under `[mcp_servers.<name>]`
 command = "python"
 args = ["-m", "ollamaq.mcp_server"]
 
-[mcp_servers.ollamaq.env]
-OLLAMAQ_HOME = "C:\\_Work\\Claude_Coded\\endless-code"
+# only if not auto-detected:
+# [mcp_servers.ollamaq.env]
+# OLLAMAQ_HOME = "<PROJECT>"
 ```
 
 ## xAI Grok
 
 Grok clients that support MCP use the same stdio launch. For a JSON-config client
-(the common shape), use the Claude-style block above verbatim. For a TOML-config
-client, use the Codex block. The server command/args/env never change — only the
-wrapper file format does.
+(the common shape), use the Claude-style block above verbatim; for a TOML-config
+client, use the Codex block. The server command/args never change — only the
+wrapper file format does, and the `env` is optional for editable installs.
 
 ---
 
