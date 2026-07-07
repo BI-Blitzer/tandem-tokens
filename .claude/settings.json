@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ollamaq:*)",
+      "Bash(python -m ollamaq.cli:*)",
+      "Bash(py -m ollamaq.cli:*)"
+    ]
+  }
+}

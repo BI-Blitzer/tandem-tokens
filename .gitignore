@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+venv/
+
+# ollamaq generated artifacts
+config/bench.json
+queue/
+results/
+cache/
+demo/
+*.log

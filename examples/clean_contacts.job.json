@@ -1,0 +1,36 @@
+{
+  "name": "clean-contacts",
+  "mode": "map",
+  "model": "gemma2:9b",
+  "task_tag": "clean",
+  "input": {
+    "kind": "csv",
+    "path": "examples/clean_contacts.csv",
+    "chunk": { "strategy": "rows", "size": 2 }
+  },
+  "prompt": {
+    "system": "You are a data cleaning engine. You output ONLY JSON, no prose, no code fences.",
+    "template": "Clean each contact row. Rules: trim and Title-Case the name; lowercase the email; normalize the phone to digits only in the form XXX-XXX-XXXX (assume US, area code may be missing - if only 7 digits keep as XXX-XXXX). Return a JSON object with a 'contacts' array; each element has id (integer), name, email, phone. Input CSV:\n{{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": ["contacts"],
+      "properties": {
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "email", "phone"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "phone": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "params": { "temperature": 0.1, "num_ctx": 8192 },
+  "retry": { "max_attempts": 3, "on_schema_fail": "repair_then_retry" }
+}

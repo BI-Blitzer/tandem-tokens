@@ -1,0 +1,41 @@
+# Cloud model pricing, USD per 1,000,000 tokens. Used to estimate the Claude (or
+# other cloud) spend the local map phase AVOIDED. This is a savings *estimate*:
+# cloud tokenizers differ from local ones, so treat the figures as indicative,
+# not exact. Edit freely as prices change — nothing else in ollamaq hardcodes them.
+#
+# `verify: true` marks a non-Anthropic entry whose price should be confirmed
+# against the provider's current pricing page before you rely on it.
+
+# Which model the digest headlines its savings against (must be a key below).
+default_compare: claude-opus-4-8
+
+models:
+  # --- Anthropic (authoritative; claude-api skill, cached 2026-06-24) ---
+  claude-fable-5:
+    input_per_mtok: 10.00
+    output_per_mtok: 50.00
+    label: Claude Fable 5
+  claude-opus-4-8:
+    input_per_mtok: 5.00
+    output_per_mtok: 25.00
+    label: Claude Opus 4.8
+  claude-sonnet-5:
+    input_per_mtok: 3.00
+    output_per_mtok: 15.00
+    label: Claude Sonnet 5
+  claude-haiku-4-5:
+    input_per_mtok: 1.00
+    output_per_mtok: 5.00
+    label: Claude Haiku 4.5
+
+  # --- Comparison points (VERIFY before relying — providers change pricing) ---
+  gpt-5:
+    input_per_mtok: 1.25
+    output_per_mtok: 10.00
+    label: OpenAI GPT-5
+    verify: true
+  gemini-2.5-pro:
+    input_per_mtok: 1.25
+    output_per_mtok: 10.00
+    label: Google Gemini 2.5 Pro
+    verify: true

@@ -1,0 +1,30 @@
+{
+  "name": "escalation-demo",
+  "mode": "map",
+  "model": "gemma2:9b",
+  "task_tag": "clean",
+  "input": {
+    "kind": "inline",
+    "values": [
+      "Meeting notes: Q3 revenue was 4.2M, up 12% YoY. Churn 3.1%. NPS 47. Headcount 210.",
+      "Summary: revenue hit 5.8 million last quarter, churn down to 2.4 percent, nps of 52, team of 260 people."
+    ],
+    "chunk": { "strategy": "rows", "size": 1 }
+  },
+  "prompt": {
+    "system": "You output ONLY JSON matching the schema. No prose, no code fences.",
+    "template": "Extract these business metrics from the text as strict types. revenue_millions and churn_percent and nps must be NUMBERS (not strings), headcount an INTEGER. Text: {{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": ["revenue_millions", "churn_percent", "nps", "headcount"],
+      "properties": {
+        "revenue_millions": { "type": "number" },
+        "churn_percent": { "type": "number" },
+        "nps": { "type": "number" },
+        "headcount": { "type": "integer" }
+      }
+    }
+  },
+  "params": { "temperature": 0.1 },
+  "retry": { "max_attempts": 2, "on_schema_fail": "repair_then_retry", "escalate_to": "qwen2.5-14b-16k" }
+}

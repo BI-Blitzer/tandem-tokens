@@ -1,0 +1,62 @@
+{
+  "name": "support-triage",
+  "mode": "map",
+  "model": "auto",
+  "task_tag": "classify",
+  "cache": true,
+  "input": {
+    "kind": "inline",
+    "values": [
+      "Can't log in since the update, keeps saying invalid password but I reset it twice.",
+      "Love the new dashboard! Any chance of a dark mode?",
+      "URGENT: production API returning 500 on every /orders call, our checkout is down.",
+      "Invoice #4821 charged me twice this month, need a refund.",
+      "How do I export my data to CSV? Can't find the button.",
+      "App crashes immediately on launch on my Pixel 8 after the latest release.",
+      "Your competitor offers SSO, when will you support SAML?",
+      "Data sync between mobile and web has been broken for 3 days, losing edits.",
+      "Just wanted to say the support team was fantastic last week, thank you!",
+      "Billing page shows my plan as Free but I'm paying for Pro every month.",
+      "Feature request: keyboard shortcuts for the editor would save me so much time.",
+      "Security concern: I received a password reset email I did not request.",
+      "The mobile app is painfully slow to load reports, 30+ seconds each time.",
+      "Can you add support for German language in the UI?",
+      "Getting rate-limited constantly on the free tier, limits seem lower than documented.",
+      "Onboarding wizard froze on step 3 and now I can't get back into my account.",
+      "Great product overall but the notification emails are way too frequent.",
+      "Webhook deliveries stopped arriving after I rotated my API key yesterday.",
+      "Please cancel my subscription, I no longer need the service.",
+      "Typo on the pricing page: 'anual' should be 'annual'.",
+      "Two-factor codes are arriving 5 minutes late, I keep getting locked out.",
+      "Is there an enterprise plan with a dedicated account manager?",
+      "The CSV import silently drops rows with special characters, lost 200 records.",
+      "Thanks for fixing the timezone bug so quickly, works perfectly now!"
+    ],
+    "chunk": { "strategy": "rows", "size": 4 }
+  },
+  "prompt": {
+    "system": "You are a support triage engine. Output ONLY JSON, no prose, no code fences.",
+    "template": "Triage each support message. For each, decide category (one of: bug, billing, feature_request, security, praise, how_to, churn), priority (one of: low, medium, high, urgent), and needs_human (boolean — true if it needs a person, false if automatable/informational). Return {\"tickets\": [{\"text\": \"<first 40 chars>\", \"category\": \"...\", \"priority\": \"...\", \"needs_human\": <bool>}]}. Messages:\n{{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": ["tickets"],
+      "properties": {
+        "tickets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text", "category", "priority", "needs_human"],
+            "properties": {
+              "text": { "type": "string" },
+              "category": { "type": "string", "enum": ["bug", "billing", "feature_request", "security", "praise", "how_to", "churn"] },
+              "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+              "needs_human": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "params": { "temperature": 0.1, "num_ctx": 8192 },
+  "retry": { "max_attempts": 3, "on_schema_fail": "repair_then_retry" }
+}

@@ -1,0 +1,43 @@
+{
+  "name": "phones-pipeline",
+  "mode": "pipeline",
+  "input": {
+    "kind": "inline",
+    "values": ["555-123-4567", "5559876543", "(555) 111 2222", "555-333-4444"],
+    "chunk": { "strategy": "rows", "size": 1 }
+  },
+  "stages": [
+    {
+      "name": "triage",
+      "model": "gemma2:9b",
+      "task_tag": "classify",
+      "prompt": {
+        "system": "You output ONLY JSON. No prose, no code fences.",
+        "template": "A phone number is well-formed only if it looks EXACTLY like XXX-XXX-XXXX (digits and dashes). Input: {{chunk}}. Return {\"malformed\": <true|false>, \"digits\": \"<the 10 digits only, no punctuation>\"}. Carry the digits forward so a later step can reformat them.",
+        "schema": {
+          "type": "object",
+          "required": ["malformed", "digits"],
+          "properties": {
+            "malformed": { "type": "boolean" },
+            "digits": { "type": "string" }
+          }
+        }
+      },
+      "filter": { "field": "malformed", "op": "==", "value": true }
+    },
+    {
+      "name": "reformat",
+      "model": "qwen2.5-14b-16k",
+      "task_tag": "clean",
+      "prompt": {
+        "system": "You output ONLY JSON. No prose, no code fences.",
+        "template": "The previous stage produced: {{chunk}}. Take its \"digits\" (a 10-digit string) and format them as ddd-ddd-dddd (dash after the 3rd and 6th digit). Return {\"phone\": \"ddd-ddd-dddd\"} using the actual digits.",
+        "schema": {
+          "type": "object",
+          "required": ["phone"],
+          "properties": { "phone": { "type": "string" } }
+        }
+      }
+    }
+  ]
+}

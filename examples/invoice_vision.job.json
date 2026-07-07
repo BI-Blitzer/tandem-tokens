@@ -1,0 +1,24 @@
+{
+  "name": "invoice-vision",
+  "mode": "map",
+  "model": "auto",
+  "task_tag": "vision",
+  "input": {
+    "kind": "images",
+    "path": "examples/images/*.png",
+    "chunk": { "strategy": "files", "size": 1 }
+  },
+  "prompt": {
+    "system": "You output ONLY JSON matching the schema. No prose, no code fences.",
+    "template": "This image ({{chunk}}) is an invoice. Extract the invoice number and the total amount as a number. Return {\"invoice\": \"...\", \"total\": <number>}.",
+    "schema": {
+      "type": "object",
+      "required": ["invoice", "total"],
+      "properties": {
+        "invoice": { "type": "string" },
+        "total": { "type": "number" }
+      }
+    }
+  },
+  "params": { "temperature": 0.1 }
+}

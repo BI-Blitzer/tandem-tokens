@@ -1,0 +1,32 @@
+{
+  "name": "seven-words",
+  "mode": "gen_test",
+  "model": "qwen3:8b",
+  "task_tag": "generate",
+  "input": {
+    "kind": "inline",
+    "values": ["ocean"],
+    "chunk": { "strategy": "rows", "size": 1 }
+  },
+  "prompt": {
+    "system": "You output ONLY JSON. No prose, no code fences.",
+    "template": "Write a single sentence about the {{chunk}} that contains EXACTLY seven words. Count the words carefully. Return {\"sentence\": \"...\"}.\nHere are earlier attempts and their scores (1.0 = exactly seven words) — do better:\n{{exemplars}}",
+    "schema": {
+      "type": "object",
+      "required": ["sentence"],
+      "properties": { "sentence": { "type": "string" } }
+    }
+  },
+  "params": { "temperature": 0.9, "num_ctx": 8192 },
+  "verifier": {
+    "cmd": "python examples/word_count_verifier.py",
+    "keep_top": 5,
+    "timeout_s": 15
+  },
+  "loop": {
+    "candidates": 6,
+    "max_iterations": 5,
+    "stop_when": "score>=1.0 or no_improvement(3)",
+    "feedback": "top_k"
+  }
+}
