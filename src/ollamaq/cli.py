@@ -36,6 +36,7 @@ from .jobspec import Mode, load_jobspec
 from .ledger import read_entries as read_ledger, summarize as summarize_ledger
 from .pricing import load_pricing
 from .queue import JobQueue, State
+from .stream import run_stream
 from .worker import run_job
 
 app = typer.Typer(
@@ -55,6 +56,33 @@ def _load_or_exit(config_path: Optional[Path]) -> Config:
     except OllamaqError as exc:
         typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
         raise typer.Exit(code=2)
+
+
+def _run_streaming(cfg: Config, spec, job_id, results_root: Path, batch: int,
+                   min_success: float) -> None:
+    """--stream path: bounded-memory streaming for map/embed only."""
+    if spec.mode not in (Mode.map, Mode.embed):
+        typer.secho(f"error: --stream supports map and embed only "
+                    f"(this is {spec.mode.value})", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+    try:
+        pricing = load_pricing()
+    except OllamaqError:
+        pricing = None
+    jid = job_id or f"{spec.name}-{int(time.time())}"
+    typer.echo(f"streaming '{spec.name}' as job {jid} (mode={spec.mode.value}) ...")
+    try:
+        res = asyncio.run(run_stream(cfg, spec, results_root / jid, pricing, batch))
+    except OllamaqError as exc:
+        typer.secho(f"error: {exc}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(code=2)
+    typer.echo(f"done: {res['ok']}/{res['items']} ok, streamed to "
+               f"{(results_root / jid / 'digest.md').as_posix()}")
+    rate = res["ok"] / res["items"] if res["items"] else 0.0
+    if spec.mode == Mode.map and rate < min_success:
+        typer.secho(f"success rate {rate:.1%} below {min_success:.0%}",
+                    fg=typer.colors.YELLOW, err=True)
+        raise typer.Exit(code=1)
 
 
 def _run_sample(cfg: Config, spec, n: int) -> None:
@@ -195,8 +223,13 @@ def run(
     sample: int = typer.Option(
         0, "--sample", help="Probe the first N map items, print a full-job ETA, and stop."
     ),
+    stream: bool = typer.Option(
+        False, "--stream", help="Stream a huge map/embed input in bounded batches "
+        "(constant memory), writing results to disk as it goes."
+    ),
+    batch: int = typer.Option(0, "--batch", help="Streaming batch size (0 = auto)."),
 ) -> None:
-    """Run a job synchronously (map / gen_test / pipeline) and write its digest."""
+    """Run a job synchronously (map / gen_test / pipeline / embed) and write its digest."""
     if not wait:
         typer.secho("error: 'run' is synchronous — use 'ollamaq submit' to enqueue "
                     "a job for the daemon instead", fg=typer.colors.RED, err=True)
@@ -211,6 +244,10 @@ def run(
 
     if sample > 0:
         _run_sample(cfg, spec, sample)
+        return
+
+    if stream:
+        _run_streaming(cfg, spec, job_id, results_root, batch, min_success)
         return
 
     jid = job_id or f"{spec.name}-{int(time.time())}"

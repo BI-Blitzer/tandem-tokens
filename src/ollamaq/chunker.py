@@ -150,6 +150,83 @@ def _chunk_images(pattern: str) -> list[WorkItem]:
     return items
 
 
+def _csv_text(header: list[str], rows: list[list[str]]) -> str:
+    buf = io.StringIO()
+    w = csv.writer(buf, lineterminator="\n")
+    w.writerow(header)
+    w.writerows(rows)
+    return buf.getvalue().rstrip("\n")
+
+
+def iter_chunks(spec: InputSpec):
+    """Lazily yield WorkItems without loading the whole input into memory —
+    for streaming very large files. Streams the row/line readers when
+    chunk.overlap == 0 (the common case); otherwise, and for other kinds
+    (bytes/glob/images/inline, which are already bounded or small), it delegates
+    to the eager chunk_input. Output matches chunk_input exactly."""
+    kind, strat = spec.kind, spec.chunk.strategy
+    size, overlap = spec.chunk.size, spec.chunk.overlap
+    streamable = overlap == 0 and (
+        (kind == InputKind.csv and strat == ChunkStrategy.rows) or
+        (kind == InputKind.jsonl and strat == ChunkStrategy.rows) or
+        (kind == InputKind.text and strat == ChunkStrategy.lines))
+    if not streamable:
+        yield from chunk_input(spec)
+        return
+
+    path = Path(spec.path)  # type: ignore[arg-type]
+    if not path.is_file():
+        raise JobSpecError(f"input file not found: {path}")
+    idx = start = 0
+    buf: list = []
+
+    if kind == InputKind.csv:
+        with path.open("r", encoding="utf-8", newline="") as fh:
+            reader = csv.reader(fh)
+            header = next(reader, None)
+            if header is None:
+                return
+            for row in reader:
+                buf.append(row)
+                if len(buf) == size:
+                    yield WorkItem(idx, _csv_text(header, buf),
+                                   f"rows {start}-{start + len(buf) - 1}")
+                    idx += 1; start += len(buf); buf = []
+            if buf:
+                yield WorkItem(idx, _csv_text(header, buf),
+                               f"rows {start}-{start + len(buf) - 1}")
+    elif kind == InputKind.jsonl:
+        with path.open("r", encoding="utf-8") as fh:
+            lineno = 0
+            for line in fh:
+                lineno += 1
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    buf.append(json.loads(line))
+                except json.JSONDecodeError as exc:
+                    raise JobSpecError(f"{path}:{lineno} is not valid JSON: {exc}") from exc
+                if len(buf) == size:
+                    yield WorkItem(idx, json.dumps(buf, ensure_ascii=False),
+                                   f"records {start}-{start + len(buf) - 1}")
+                    idx += 1; start += len(buf); buf = []
+            if buf:
+                yield WorkItem(idx, json.dumps(buf, ensure_ascii=False),
+                               f"records {start}-{start + len(buf) - 1}")
+    else:  # text lines
+        with path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                buf.append(line.rstrip("\n"))
+                if len(buf) == size:
+                    yield WorkItem(idx, "\n".join(buf),
+                                   f"lines {start}-{start + len(buf) - 1}")
+                    idx += 1; start += len(buf); buf = []
+            if buf:
+                yield WorkItem(idx, "\n".join(buf),
+                               f"lines {start}-{start + len(buf) - 1}")
+
+
 def chunk_input(spec: InputSpec) -> list[WorkItem]:
     """Turn an InputSpec into an ordered list of WorkItems.
 

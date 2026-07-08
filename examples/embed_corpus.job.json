@@ -1,0 +1,7 @@
+{
+  "name": "embed-corpus",
+  "mode": "embed",
+  "model": "auto",
+  "task_tag": "embed",
+  "input": { "kind": "text", "path": "examples/corpus.txt", "chunk": { "strategy": "lines", "size": 1 } }
+}
