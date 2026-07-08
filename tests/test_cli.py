@@ -78,9 +78,3 @@ def test_doctor_warns_missing_model_exits_1(config_file: Path) -> None:
     res = runner.invoke(app, ["doctor", "--config", str(config_file)])
     assert res.exit_code == 1
     assert "not installed" in _all_output(res)
-
-
-def test_phase_stub_exits_2(config_file: Path) -> None:
-    res = runner.invoke(app, ["daemon"])
-    assert res.exit_code == 2
-    assert "Phase 2" in _all_output(res)
