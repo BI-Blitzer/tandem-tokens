@@ -26,6 +26,7 @@ from .chunker import chunk_input
 from .client import OllamaClient
 from .config import Config, load_config, normalize_model_name
 from .daemon import run_daemon
+from .dashboard import render, snapshot
 from .digest import write_results
 from .errors import OllamaqError
 from .eta import bench_lookup, project
@@ -327,6 +328,25 @@ def status(
         typer.echo(f"{st.value:8} {len(jobs)}")
         for j in jobs[:20]:
             typer.echo(f"    {j.job_id}")
+
+
+@app.command()
+def watch(
+    queue_root: Path = typer.Option(DEFAULT_QUEUE_ROOT, "--queue"),
+    results_root: Path = typer.Option(DEFAULT_RESULTS_ROOT, "--results"),
+    interval: float = typer.Option(2.0, "--interval", help="Refresh seconds."),
+) -> None:
+    """Live dashboard: queue state + savings scoreboard, refreshed in place."""
+    q = JobQueue(queue_root)
+    try:
+        while True:
+            snap = snapshot(q, results_root)
+            sys.stdout.write("\033[2J\033[H")  # clear + home (VT-enabled consoles)
+            sys.stdout.write(render(snap))
+            sys.stdout.flush()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        typer.echo("\nstopped")
 
 
 @app.command()

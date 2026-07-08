@@ -71,6 +71,7 @@ ollamaq run examples/embed_docs.job.json          # embed mode (vectors for RAG/
 ollamaq submit examples/clean_contacts.job.json --job-id nightly-clean
 ollamaq daemon                  # foreground; drains the queue (run ONE per machine)
 ollamaq status                  # counts per state (pending/running/done/failed)
+ollamaq watch                   # live dashboard: queue state + savings scoreboard
 ollamaq status nightly-clean    # one job's state + resolved model + error
 ollamaq cancel nightly-clean    # remove a still-pending job
 ollamaq digest nightly-clean    # print results/<job_id>/digest.md
