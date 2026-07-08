@@ -35,14 +35,33 @@ def make_key(model: str, system: Optional[str], prompt: str,
 
 class Cache:
     """One JSON file per key under `root`. Never raises on read — a missing or
-    corrupt entry is simply a miss."""
+    corrupt entry is simply a miss.
 
-    def __init__(self, root: str | Path = "cache") -> None:
+    Bounded size: when the entry count exceeds `max_entries`, the oldest entries
+    (by mtime) are evicted down to 90% of the cap, so eviction amortizes to once
+    every ~10% of the cap rather than on every put. 0 disables the bound."""
+
+    def __init__(self, root: str | Path = "cache", max_entries: int = 0) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
+        self.max_entries = max_entries
 
     def _path(self, key: str) -> Path:
         return self.root / f"{key}.json"
+
+    def _evict_if_full(self) -> None:
+        if self.max_entries <= 0:
+            return
+        files = list(self.root.glob("*.json"))
+        if len(files) <= self.max_entries:
+            return
+        low = int(self.max_entries * 0.9)
+        files.sort(key=lambda p: p.stat().st_mtime)  # oldest first
+        for p in files[: len(files) - low]:
+            try:
+                p.unlink()
+            except FileNotFoundError:
+                pass
 
     def get(self, key: str) -> Optional[Any]:
         """Return the cached value, or None on miss / unreadable / corrupt file."""
@@ -54,9 +73,11 @@ class Cache:
         return data.get("value") if isinstance(data, dict) else None
 
     def put(self, key: str, value: Any) -> None:
-        """Store a validated value atomically (temp file + os.replace)."""
+        """Store a validated value atomically (temp file + os.replace), then
+        evict oldest entries if the cap is exceeded."""
         p = self._path(key)
         tmp = p.with_suffix(".json.tmp")
         tmp.write_text(json.dumps({"value": value}, ensure_ascii=False),
                        encoding="utf-8")
         os.replace(tmp, p)
+        self._evict_if_full()

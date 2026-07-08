@@ -90,7 +90,8 @@ installed · 2 config error. `run` exits 1 when the success rate falls below
 Add `"cache": true` to a job spec to reuse prior validated outputs on re-runs
 (keyed on model+prompt+schema+options; validated successes only). Cached items
 cost 0 tokens and skip generation — a re-run of an unchanged job is near-instant.
-Cache lives under `cache/` (override with `OLLAMAQ_CACHE`).
+Cache lives under `cache/` (override with `OLLAMAQ_CACHE`); it's bounded to
+`OLLAMAQ_CACHE_MAX_ENTRIES` entries (default 10000, oldest evicted; 0 = unbounded).
 
 `retry.escalate_to: <model>` gives an item that keeps failing schema on the
 primary model one attempt on a stronger local model before it's surfaced as a

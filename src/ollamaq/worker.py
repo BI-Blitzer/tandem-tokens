@@ -244,7 +244,13 @@ async def run_job(
     model = config.resolve_model(spec.model, spec.task_tag)
     max_parallel = config.models[model].max_parallel
     sem = asyncio.Semaphore(max_parallel)
-    cache = Cache(os.environ.get("OLLAMAQ_CACHE", "cache")) if spec.cache else None
+    cache = None
+    if spec.cache:
+        try:
+            cap = int(os.environ.get("OLLAMAQ_CACHE_MAX_ENTRIES", "10000"))
+        except ValueError:
+            cap = 10000
+        cache = Cache(os.environ.get("OLLAMAQ_CACHE", "cache"), max_entries=cap)
 
     # Resolve the escalation target up front (fail fast if undefined/disabled).
     # A no-op when it equals the primary model.

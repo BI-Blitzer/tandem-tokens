@@ -47,3 +47,23 @@ def test_roundtrip_preserves_value(tmp_path: Path) -> None:
     val = {"rows": [{"id": 1, "name": "Ann"}], "nested": {"x": [1, 2]}}
     c.put("k", val)
     assert Cache(tmp_path / "cache").get("k") == val  # survives a fresh instance
+
+
+def test_cap_evicts_oldest(tmp_path: Path) -> None:
+    import os, time
+    c = Cache(tmp_path / "cache", max_entries=10)
+    for i in range(12):
+        c.put(f"k{i:02d}", i)
+        os.utime(c._path(f"k{i:02d}"), (i, i))  # deterministic mtimes (oldest = k00)
+    c.put("k99", 99)  # 13 entries -> over cap 10 -> evict down to 9, +1 = 10
+    remaining = sorted(p.stem for p in (tmp_path / "cache").glob("*.json"))
+    assert len(remaining) <= 10
+    assert "k99" in remaining          # newest kept
+    assert "k00" not in remaining      # oldest evicted
+
+
+def test_cap_zero_disables_eviction(tmp_path: Path) -> None:
+    c = Cache(tmp_path / "cache", max_entries=0)
+    for i in range(50):
+        c.put(f"k{i}", i)
+    assert len(list((tmp_path / "cache").glob("*.json"))) == 50
