@@ -26,6 +26,7 @@ class Mode(str, Enum):
     map = "map"
     gen_test = "gen_test"
     pipeline = "pipeline"
+    embed = "embed"      # embed each item's text via a local embedding model
 
 
 class InputKind(str, Enum):
@@ -210,13 +211,16 @@ class JobSpec(BaseModel):
         if self.mode == Mode.pipeline:
             if not self.stages:
                 raise ValueError("mode='pipeline' requires a non-empty 'stages' list")
-        else:
-            if self.prompt is None:
-                raise ValueError(f"mode={self.mode.value!r} requires a 'prompt'")
-            if self.model == "auto" and not self.task_tag:
-                raise ValueError("model='auto' requires task_tag so it can be routed")
-            if self.mode == Mode.gen_test and self.verifier is None:
-                raise ValueError("mode='gen_test' requires a verifier")
+            return self
+        # map / gen_test / embed all need a routable model.
+        if self.model == "auto" and not self.task_tag:
+            raise ValueError("model='auto' requires task_tag so it can be routed")
+        if self.mode == Mode.embed:
+            return self  # embed uses the chunk text directly; no prompt/schema
+        if self.prompt is None:
+            raise ValueError(f"mode={self.mode.value!r} requires a 'prompt'")
+        if self.mode == Mode.gen_test and self.verifier is None:
+            raise ValueError("mode='gen_test' requires a verifier")
         return self
 
 

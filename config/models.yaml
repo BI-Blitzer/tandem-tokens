@@ -37,6 +37,10 @@ models:
     max_parallel: 2
     num_ctx: 8192
     notes: Vision (image extraction) + text. Works with this Ollama build. ~3.3 GB.
+  "nomic-embed-text:latest":
+    max_parallel: 4
+    num_ctx: 8192
+    notes: Embedding model (768-dim) for mode=embed. Small and fast.
   "llama3.2-vision:11b":
     max_parallel: 1
     num_ctx: 8192
@@ -52,3 +56,4 @@ routing:
   generate: "qwen3:8b"
   code: qwen2.5-14b-16k
   vision: "gemma3:4b"
+  embed: "nomic-embed-text:latest"

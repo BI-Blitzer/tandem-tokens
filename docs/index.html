@@ -113,6 +113,7 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;paddin
     <tr><td><code>map</code></td><td>chunk inputs, run a template per chunk, merge — bulk clean / extract / classify / summarize / codegen.</td></tr>
     <tr><td><code>gen_test</code></td><td>generate N candidates, score each with a verifier, keep the best, feed survivors back — an autoresearch loop.</td></tr>
     <tr><td><code>pipeline</code></td><td>chained stages with per-stage filters — e.g. a cheap model triages, a bigger model cleans only the flagged rows.</td></tr>
+    <tr><td><code>embed</code></td><td>embed each item's text into a vector via a local embedding model — build a RAG/search store without a per-document cloud embedding bill.</td></tr>
   </table>
   <p class="faint" style="font-size:13.5px">Savings are map-phase only. A Claude reduce/clean pass over
   the results still costs tokens — the win scales with keeping that pass small (review a digest and write a

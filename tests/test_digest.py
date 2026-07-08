@@ -161,6 +161,23 @@ def test_digest_gentest_leaderboard(tmp_path: Path) -> None:
     assert "sample outputs" not in md
 
 
+def test_digest_embed_reports_dims_not_vectors(tmp_path: Path) -> None:
+    spec = JobSpec.model_validate({
+        "name": "e", "mode": "embed", "model": "nomic-embed-text:latest",
+        "input": {"kind": "inline", "values": [1], "chunk": {"strategy": "rows", "size": 1}},
+    })
+    run = _run([
+        ItemResult(0, "s0", True, {"dim": 768, "embedding": [0.1] * 768}, attempts=1),
+        ItemResult(1, "s1", True, {"dim": 768, "embedding": [0.2] * 768}, attempts=1),
+    ])
+    md = build_digest_md("e", spec, run, tmp_path, _pricing())
+    assert "## embeddings" in md
+    assert "dimension: [768]" in md
+    assert "0.1, 0.1, 0.1" not in md          # raw vectors NOT dumped
+    assert "estimated cloud cost avoided" not in md  # chat savings block skipped
+    assert len(md.encode("utf-8")) < 2000     # compact despite 768-dim vectors
+
+
 def test_digest_pipeline_stages(tmp_path: Path) -> None:
     run = RunResult(
         model="gemma2:9b -> qwen2.5-14b-16k",

@@ -1,0 +1,18 @@
+{
+  "name": "embed-docs",
+  "mode": "embed",
+  "model": "auto",
+  "task_tag": "embed",
+  "input": {
+    "kind": "inline",
+    "values": [
+      "The mitochondria is the powerhouse of the cell.",
+      "Quarterly revenue grew 12% year over year to $4.2M.",
+      "Preheat the oven to 220C before adding the sourdough.",
+      "The API returns a 429 when the rate limit is exceeded.",
+      "Photosynthesis converts sunlight into chemical energy.",
+      "Churn dropped to 2.4% after the onboarding redesign."
+    ],
+    "chunk": { "strategy": "rows", "size": 1 }
+  }
+}

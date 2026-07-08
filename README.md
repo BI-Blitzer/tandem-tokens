@@ -65,6 +65,7 @@ ollamaq bench                   # benchmark all enabled models -> config/bench.j
 ollamaq run examples/clean_contacts.job.json      # map mode (bulk clean)
 ollamaq run examples/seven_words.job.json         # gen_test mode (generate + verify loop)
 ollamaq run examples/phones_pipeline.job.json     # pipeline mode (triage -> clean flagged)
+ollamaq run examples/embed_docs.job.json          # embed mode (vectors for RAG/search)
 
 # Queue + daemon: enqueue jobs, drain them 24/7 in the background
 ollamaq submit examples/clean_contacts.job.json --job-id nightly-clean

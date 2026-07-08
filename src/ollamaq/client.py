@@ -46,6 +46,18 @@ class GenerateResult(BaseModel):
         return self.load_duration_ns / 1e9
 
 
+class EmbedResult(BaseModel):
+    """One text's embedding vector plus the input token count Ollama reported."""
+
+    model: str
+    embedding: list[float]
+    prompt_tokens: int = 0
+
+    @property
+    def dim(self) -> int:
+        return len(self.embedding)
+
+
 class OllamaClient:
     """Thin async wrapper. Use as ``async with OllamaClient(settings) as c:``."""
 
@@ -83,6 +95,24 @@ class OllamaClient:
         if resp.status_code != 200:
             raise OllamaHTTPError(resp.status_code, resp.text[:500])
         return [m["name"] for m in resp.json().get("models", [])]
+
+    async def embed(self, model: str, text: str,
+                    keep_alive: str | None = None) -> EmbedResult:
+        """Embed one text via /api/embed. Raises OllamaConnectionError /
+        OllamaHTTPError like generate()."""
+        payload: dict[str, Any] = {"model": model, "input": text,
+                                   "keep_alive": keep_alive or self.settings.keep_alive}
+        try:
+            resp = await self._client.post("/api/embed", json=payload)
+        except httpx.HTTPError as exc:
+            raise OllamaConnectionError(
+                f"embed failed against {self.settings.base_url}: {exc}") from exc
+        if resp.status_code != 200:
+            raise OllamaHTTPError(resp.status_code, resp.text[:500])
+        data = resp.json()
+        embs = data.get("embeddings") or []
+        return EmbedResult(model=model, embedding=embs[0] if embs else [],
+                           prompt_tokens=data.get("prompt_eval_count") or 0)
 
     async def model_sizes(self) -> dict[str, float]:
         """Installed model name -> on-disk size in MB (from /api/tags)."""

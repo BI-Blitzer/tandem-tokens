@@ -12,6 +12,7 @@ import asyncio
 
 from .chunker import chunk_input
 from .config import Config
+from .embed import run_embed
 from .errors import JobSpecError
 from .gentest import run_gentest
 from .jobspec import JobSpec, Mode
@@ -22,11 +23,13 @@ from .worker import RunResult, run_job
 def execute_spec(cfg: Config, spec: JobSpec) -> RunResult:
     """Run the job to completion, dispatching on mode. Raises JobSpecError for
     empty input."""
-    if spec.mode == Mode.map:
+    if spec.mode in (Mode.map, Mode.embed):
         work = chunk_input(spec.input)
         if not work:
             raise JobSpecError("input produced 0 work items")
         items = [(w.index, w.source, w.text, w.images) for w in work]
+        if spec.mode == Mode.embed:
+            return asyncio.run(run_embed(cfg, spec, items))
         return asyncio.run(run_job(cfg, spec, items))
     if spec.mode == Mode.gen_test:
         return asyncio.run(run_gentest(cfg, spec))

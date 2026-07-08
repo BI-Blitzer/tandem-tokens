@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .jobspec import JobSpec
+from .jobspec import JobSpec, Mode
 from .ledger import append_entry as append_ledger_entry
 from .pricing import Pricing, estimate_all
 from .worker import RunResult
@@ -98,9 +98,31 @@ def build_digest_md(job_id: str, spec: JobSpec, run: RunResult, results_dir: Pat
           f"(via retry.escalate_to)")
     a(f"- artifacts: {results_dir.as_posix()}  (merged.jsonl, items/, failed_items.jsonl)")
     a("")
-    if pricing is not None:
+    is_embed = spec.mode == Mode.embed
+    # Chat pricing doesn't apply to embeddings — skip the savings block for embed.
+    if pricing is not None and not is_embed:
         lines.extend(_savings_lines(run, pricing))
         a("")
+
+    if is_embed:  # embed mode: report vectors as dim/count, never dump them
+        dims = {r.value.get("dim") for r in ok if isinstance(r.value, dict)}
+        a("## embeddings")
+        a(f"- vectors: {run.ok_count}/{len(run.results)}   dimension: "
+          f"{sorted(d for d in dims if d) or '-'}")
+        a(f"- stored in {(results_dir / 'merged.jsonl').as_posix()} "
+          f"(one {{index, source, value:{{dim, embedding}}}} per line)")
+        a("")
+        if bad:
+            a(f"## failures ({len(bad)})")
+            for r in bad:
+                err = r.error if len(r.error) <= _ERROR_TRUNC else r.error[:_ERROR_TRUNC] + "…"
+                a(f"- [{r.index}] {r.source}: {err}")
+        else:
+            a("## failures: none")
+        text = "\n".join(lines) + "\n"
+        return text if len(text.encode("utf-8")) <= DIGEST_MAX_BYTES else (
+            text.encode("utf-8")[: DIGEST_MAX_BYTES - 40].decode("utf-8", "ignore")
+            + "\n… (truncated)\n")
 
     if run.stages:  # pipeline mode: stage funnel, then the map-shaped body
         a("## pipeline stages")
