@@ -132,12 +132,12 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;paddin
   <h2>Supported platforms</h2>
   <div class="grid2">
     <div class="card"><div class="lab" style="font-size:13px;color:var(--muted);margin-bottom:.4rem">operating system</div>
-      <p style="margin:0"><b>Windows 11</b> — developed and tested here (206-test suite green).<br>
-      <b>Linux / macOS</b> — portable Python (file queue, httpx, subprocess), expected to work but
-      <span class="faint">not yet verified</span>; the Task Scheduler daemon recipe and GPU detection are Windows/NVIDIA-first.</p></div>
-    <div class="card"><div class="lab" style="font-size:13px;color:var(--muted);margin-bottom:.4rem">runtimes tested</div>
-      <span class="pill">Python 3.11</span><span class="pill">Python 3.13</span><span class="pill">Ollama 0.31</span>
-      <span class="pill">RTX 5080 / 16&nbsp;GB</span></div>
+      <p style="margin:0"><b>Windows 11</b> and <b>Linux</b> — both run the full test suite green in CI.<br>
+      <b>macOS</b> — portable Python, expected to work but not yet run in CI. The Task Scheduler
+      daemon recipe is Windows-specific; GPU detection covers NVIDIA / AMD / Apple.</p></div>
+    <div class="card"><div class="lab" style="font-size:13px;color:var(--muted);margin-bottom:.4rem">CI matrix</div>
+      <span class="pill">Windows · 3.11</span><span class="pill">Windows · 3.13</span>
+      <span class="pill">Ubuntu · 3.13</span><span class="pill">Ollama 0.31</span></div>
   </div>
 
   <h2>LLM platform hooks &amp; MCP</h2>
