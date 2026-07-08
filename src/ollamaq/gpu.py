@@ -11,7 +11,9 @@ degrades to config-size-only advice.
 
 from __future__ import annotations
 
+import json
 import os
+import platform
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -49,22 +51,17 @@ def _find_nvidia_smi() -> Optional[str]:
     return next((c for c in candidates if os.path.isfile(c)), None)
 
 
-def detect_nvidia_gpu() -> Optional[GpuInfo]:
-    """First NVIDIA GPU via nvidia-smi, or None if unavailable/non-NVIDIA."""
-    exe = _find_nvidia_smi()
-    if not exe:
-        return None
+def _run(argv: list[str]) -> Optional[str]:
     try:
-        out = subprocess.run(
-            [exe, "--query-gpu=name,driver_version,memory.total,memory.free",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=10,
-        )
+        out = subprocess.run(argv, capture_output=True, text=True, timeout=10)
     except (OSError, subprocess.TimeoutExpired):
         return None
-    if out.returncode != 0 or not out.stdout.strip():
-        return None
-    first = out.stdout.strip().splitlines()[0]
+    return out.stdout if out.returncode == 0 and out.stdout.strip() else None
+
+
+def parse_nvidia_smi(stdout: str) -> Optional[GpuInfo]:
+    """Parse the CSV output of nvidia-smi --query-gpu. Pure, for testability."""
+    first = stdout.strip().splitlines()[0] if stdout.strip() else ""
     parts = [p.strip() for p in first.split(",")]
     if len(parts) < 4:
         return None
@@ -73,6 +70,67 @@ def detect_nvidia_gpu() -> Optional[GpuInfo]:
                        total_mb=float(parts[2]), free_mb=float(parts[3]))
     except ValueError:
         return None
+
+
+def detect_nvidia_gpu() -> Optional[GpuInfo]:
+    """First NVIDIA GPU via nvidia-smi, or None if unavailable/non-NVIDIA."""
+    exe = _find_nvidia_smi()
+    if not exe:
+        return None
+    out = _run([exe, "--query-gpu=name,driver_version,memory.total,memory.free",
+                "--format=csv,noheader,nounits"])
+    return parse_nvidia_smi(out) if out else None
+
+
+def parse_rocm_smi(stdout: str) -> Optional[GpuInfo]:
+    """Parse `rocm-smi --showmeminfo vram --json` for the first AMD card's VRAM."""
+    try:
+        data = json.loads(stdout)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    for card, info in (data.items() if isinstance(data, dict) else []):
+        if not isinstance(info, dict):
+            continue
+        total = next((v for k, v in info.items()
+                      if "vram total memory" in k.lower()), None)
+        if total is None:
+            continue
+        try:
+            total_mb = float(total) / (1024 * 1024)
+        except (ValueError, TypeError):
+            continue
+        return GpuInfo(name=f"AMD {card}", total_mb=total_mb, free_mb=total_mb)
+    return None
+
+
+def detect_amd_gpu() -> Optional[GpuInfo]:
+    exe = shutil.which("rocm-smi")
+    if not exe:
+        return None
+    out = _run([exe, "--showmeminfo", "vram", "--json"])
+    return parse_rocm_smi(out) if out else None
+
+
+def detect_apple_gpu() -> Optional[GpuInfo]:
+    """Apple Silicon shares unified memory with the GPU — report total RAM as the
+    budget (the OS uses some, so treat it as an upper bound)."""
+    if platform.system() != "Darwin" or platform.machine() != "arm64":
+        return None
+    out = _run(["sysctl", "-n", "hw.memsize"])
+    if not out:
+        return None
+    try:
+        total_mb = int(out.strip()) / (1024 * 1024)
+    except ValueError:
+        return None
+    return GpuInfo(name="Apple Silicon (unified memory)",
+                   total_mb=total_mb, free_mb=total_mb)
+
+
+def detect_gpu() -> Optional[GpuInfo]:
+    """Best-effort GPU/VRAM detection across vendors: NVIDIA (fully tested) →
+    AMD ROCm → Apple Silicon (both best-effort). None if nothing is found."""
+    return detect_nvidia_gpu() or detect_amd_gpu() or detect_apple_gpu()
 
 
 @dataclass

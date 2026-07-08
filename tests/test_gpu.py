@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import ollamaq.gpu as gpu_mod
 from ollamaq.config import Config
-from ollamaq.gpu import GpuInfo, ModelFit, _find_nvidia_smi, recommend
+from ollamaq.gpu import (GpuInfo, ModelFit, _find_nvidia_smi, parse_nvidia_smi,
+                         parse_rocm_smi, recommend)
 
 
 def _cfg() -> Config:
@@ -67,6 +68,29 @@ def test_format_marks_fit_and_spill() -> None:
     out = recommend(_cfg(), SIZES, _gpu(16303)).format()
     assert "FITS" in out and "SPILL" in out
     assert "[disabled]" in out  # gemma2:27b
+
+
+def test_parse_nvidia_smi() -> None:
+    g = parse_nvidia_smi("NVIDIA GeForce RTX 5080, 610.62, 16303, 10097\n")
+    assert g.name == "NVIDIA GeForce RTX 5080" and g.total_mb == 16303 and g.free_mb == 10097
+
+
+def test_parse_nvidia_smi_garbage() -> None:
+    assert parse_nvidia_smi("") is None
+    assert parse_nvidia_smi("no commas here") is None
+
+
+def test_parse_rocm_smi() -> None:
+    # ~16 GiB card
+    out = '{"card0": {"VRAM Total Memory (B)": "17163091968", "VRAM Total Used Memory (B)": "1000000"}}'
+    g = parse_rocm_smi(out)
+    assert g is not None and g.name == "AMD card0"
+    assert round(g.total_mb) == 16368        # 17163091968 / 1024^2
+
+
+def test_parse_rocm_smi_garbage() -> None:
+    assert parse_rocm_smi("not json") is None
+    assert parse_rocm_smi('{"card0": {"other": "1"}}') is None  # no VRAM key
 
 
 def test_find_nvidia_smi_falls_back_when_not_on_path(tmp_path, monkeypatch) -> None:

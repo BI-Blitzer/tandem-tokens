@@ -124,8 +124,9 @@ pre{background:var(--card);border:1px solid var(--line);border-radius:8px;paddin
     <li><b>Python 3.11+</b> and <b>Ollama</b>, plus the local models you route to.</li>
     <li><b>~16&nbsp;GB VRAM</b> to run 14B models fully on GPU; smaller models need less. The
       <code>ollamaq recommend</code> command tells you exactly what fits vs. spills to CPU.</li>
-    <li>An <b>NVIDIA GPU</b> for the <code>recommend</code> feature specifically (via nvidia-smi).
-      The harness itself runs on anything Ollama supports — CPU, AMD, Apple Silicon — just without GPU-fit advice.</li>
+    <li><code>recommend</code> detects <b>NVIDIA</b> (nvidia-smi, fully tested), <b>AMD</b> (rocm-smi)
+      and <b>Apple Silicon</b> (unified memory) — best-effort on the latter two. Anything else falls back
+      to size-only advice. The harness itself runs on whatever Ollama supports.</li>
   </ul>
 
   <h2>Supported platforms</h2>

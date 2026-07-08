@@ -9,11 +9,14 @@ jobs:
   test:
     # The suite is fully HTTP-mocked (respx) — no Ollama or GPU needed.
     # Runs on Windows (the developed/tested platform) across supported Pythons.
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.13"]
+        include:
+          - { os: windows-latest, python-version: "3.11" }
+          - { os: windows-latest, python-version: "3.13" }
+          - { os: ubuntu-latest,  python-version: "3.13" }   # validate Linux portability
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

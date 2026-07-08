@@ -30,7 +30,7 @@ from .digest import write_results
 from .errors import OllamaqError
 from .eta import bench_lookup, project
 from .execute import execute_spec
-from .gpu import detect_nvidia_gpu, recommend as build_recommendation
+from .gpu import detect_gpu, recommend as build_recommendation
 from .jobspec import Mode, load_jobspec
 from .ledger import read_entries as read_ledger, summarize as summarize_ledger
 from .pricing import load_pricing
@@ -351,7 +351,7 @@ def recommend(
     """Recommend which configured models fit this GPU (vs. spill to CPU), using
     nvidia-smi VRAM + installed model sizes + bench.json throughput if present."""
     cfg = _load_or_exit(config_path)
-    gpu = detect_nvidia_gpu()
+    gpu = detect_gpu()
 
     async def _sizes() -> dict:
         async with OllamaClient(cfg.ollama) as client:

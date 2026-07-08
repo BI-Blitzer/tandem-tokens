@@ -90,9 +90,9 @@ def digest(results_root: Path, job_id: str) -> str:
 async def recommend_models(cfg: Config) -> str:
     """GPU-aware model-fit report: which configured models run fully on this
     machine's GPU vs. spill to CPU. Used by the MCP `recommend_models` tool."""
-    from .gpu import detect_nvidia_gpu, recommend as build_recommendation
+    from .gpu import detect_gpu, recommend as build_recommendation
 
-    gpu = detect_nvidia_gpu()
+    gpu = detect_gpu()
     sizes: dict = {}
     async with OllamaClient(cfg.ollama) as client:
         if await client.ping():
