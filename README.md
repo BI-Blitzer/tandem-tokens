@@ -1,5 +1,13 @@
 # ollamaq
 
+[![CI](https://github.com/BI-Blitzer/tandem-tokens/actions/workflows/ci.yml/badge.svg)](https://github.com/BI-Blitzer/tandem-tokens/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-0f8c68.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab.svg)](pyproject.toml)
+[![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-6b6a64.svg)](#deploy)
+[![MCP server](https://img.shields.io/badge/MCP-server-17b58f.svg)](MCP.md)
+
+**Site: [bi-blitzer.github.io/tandem-tokens](https://bi-blitzer.github.io/tandem-tokens/)** · `pip`-installable, Docker + Pinokio launchers, cross-client MCP.
+
 Local Ollama offload harness for Claude Code. Claude (Opus/Sonnet) delegates
 map-phase and brute-force work to local models; results stay on disk; Claude
 reads only compact digests. See [PLAN.md](PLAN.md) for the full architecture and
