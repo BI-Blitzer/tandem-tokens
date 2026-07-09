@@ -1,0 +1,38 @@
+# Run the ollamaq daemon in a container against an Ollama server on the HOST.
+#
+#   docker compose up --build      # start the daemon (Ctrl-C to stop)
+#   docker compose up -d           # ... detached
+#
+# Submitting jobs: write specs into ./queue from the host (ollamaq submit ...)
+# or exec into the container. The daemon drains ./queue and writes ./results.
+#
+# Ollama wiring: the container reaches the host's Ollama at host.docker.internal.
+# On Docker Desktop (Windows/macOS) this resolves automatically; on Linux the
+# extra_hosts entry below maps it to the host gateway. If instead you run Ollama
+# as its own container, drop OLLAMAQ_BASE_URL/extra_hosts and put both services
+# on the same network, pointing base_url at http://ollama:11434.
+
+# Pin the project name so the stack is `ollamaq_*` regardless of the checkout
+# folder (Compose otherwise derives it from the directory name).
+name: ollamaq
+
+services:
+  ollamaq:
+    build: .
+    image: ollamaq:latest
+    container_name: ollamaq-daemon
+    # host.docker.internal -> host's Ollama, without editing models.yaml.
+    environment:
+      OLLAMAQ_BASE_URL: "http://host.docker.internal:11434"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # needed on Linux; harmless elsewhere
+    volumes:
+      - ./config:/config:ro                   # models.yaml, pricing.yaml (read-only)
+      # Bind-mount the working dirs so `ollamaq submit` on the HOST drops specs
+      # into the same queue the container drains, and results land back on disk.
+      # (On Linux, pre-create these dirs owned by uid 10001, or run as your uid
+      #  with `user: "${UID}:${GID}"`, to avoid root-owned mount permissions.)
+      - ./queue:/data/queue
+      - ./results:/data/results
+      - ./cache:/data/cache
+    restart: unless-stopped

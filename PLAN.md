@@ -1,4 +1,4 @@
-# endless-code — Local Ollama Offload Harness for Claude Code
+# tandem-tokens — Local Ollama Offload Harness for Claude Code
 
 **Goal:** Let Claude Code (Opus/Sonnet) delegate mundane, brute-force, and map-phase work
 to local Ollama models, then spend premium tokens only on orchestration and the
@@ -57,7 +57,7 @@ rows, failures needing escalation). The reduce/cleaning pass is Claude reading t
 ### Directory layout
 
 ```
-endless-code/
+tandem-tokens/
 ├─ PLAN.md                      (this file)
 ├─ pyproject.toml               (package: ollamaq; deps: httpx, pydantic, pyyaml, typer)
 ├─ config/

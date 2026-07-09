@@ -12,6 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from ollamaq.config import (
+    ENV_BASE_URL,
     ENV_CONFIG,
     Config,
     load_config,
@@ -40,6 +41,20 @@ def test_load_from_env(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv(ENV_CONFIG, str(config_file))
     cfg = load_config()
     assert cfg.routing["clean"] == "qwen2.5-14b-16k"
+
+
+def test_base_url_env_override(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # containers point at the host's Ollama without editing models.yaml
+    monkeypatch.setenv(ENV_BASE_URL, "http://host.docker.internal:11434")
+    cfg = load_config(config_file)
+    assert cfg.ollama.base_url == "http://host.docker.internal:11434"
+
+
+def test_base_url_unset_keeps_config_value(config_file: Path,
+                                           monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(ENV_BASE_URL, raising=False)
+    cfg = load_config(config_file)
+    assert cfg.ollama.base_url == "http://localhost:11434"
 
 
 def test_missing_file_raises(tmp_path: Path) -> None:

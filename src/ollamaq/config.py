@@ -27,6 +27,7 @@ from .errors import (
 
 ENV_CONFIG = "OLLAMAQ_CONFIG"
 ENV_HOME = "OLLAMAQ_HOME"
+ENV_BASE_URL = "OLLAMAQ_BASE_URL"
 
 
 def normalize_model_name(name: str) -> str:
@@ -141,8 +142,14 @@ def load_config(path: str | Path | None = None) -> Config:
             except yaml.YAMLError as exc:
                 raise ConfigError(f"invalid YAML in {cand}: {exc}") from exc
             try:
-                return Config.model_validate(raw)
+                cfg = Config.model_validate(raw)
             except ValidationError as exc:
                 raise ConfigError(f"invalid config {cand}: {exc}") from exc
+            # 12-factor override: let a container/host point at a different Ollama
+            # without editing models.yaml (e.g. host.docker.internal from Docker).
+            override = os.environ.get(ENV_BASE_URL)
+            if override:
+                cfg.ollama.base_url = override
+            return cfg
     searched = ", ".join(str(c) for c in candidates)
     raise ConfigError(f"no models.yaml found (searched: {searched})")

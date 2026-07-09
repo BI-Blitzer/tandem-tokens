@@ -45,9 +45,21 @@ surfaces in total: the **hook** (proactive nudge), the **MCP** server (tools), a
 
 ## Install
 
+From source (development, with test deps):
+
 ```pwsh
 py -m pip install -e ".[dev]"
 ```
+
+Or build and install a wheel (what a release ships):
+
+```pwsh
+py -m build                                  # -> dist/ollamaq-<ver>-py3-none-any.whl
+py -m pip install dist/ollamaq-*.whl
+```
+
+Both expose two console scripts: **`ollamaq`** (the CLI) and **`ollamaq-mcp`**
+(the MCP server, equivalent to `python -m ollamaq.mcp_server`).
 
 ## Configure
 
@@ -55,6 +67,25 @@ All model routing lives in [config/models.yaml](config/models.yaml) — the sing
 source of truth. No module hardcodes model names. Resolution order for the config
 file: `--config` flag → `$OLLAMAQ_CONFIG` → `$OLLAMAQ_HOME/config/models.yaml` →
 `./config/models.yaml`.
+
+**Ollama endpoint:** `base_url` comes from `models.yaml`, but `$OLLAMAQ_BASE_URL`
+overrides it at runtime without editing the file — used by the Docker setup to
+reach the host's Ollama (`http://host.docker.internal:11434`).
+
+## Deploy
+
+Two turnkey ways to run the queue daemon beyond a bare `ollamaq daemon`:
+
+- **Docker** — [`Dockerfile`](Dockerfile) + [`docker-compose.yml`](docker-compose.yml)
+  run the daemon in a container against an Ollama server on the host. `docker compose
+  up --build` starts it; it mounts `./config` (read-only) and `./queue` / `./results`
+  / `./cache` so you still `ollamaq submit` from the host. The image bundles only the
+  worker — not Ollama or any models. A `HEALTHCHECK` uses `ollamaq doctor`.
+- **Pinokio** — root-level [`pinokio.js`](pinokio.js) + `install.js` / `start.js` /
+  `stop.js` / `update.js` / `reset.js` give a 1-click GUI install and daemon launcher
+  for non-CLI users. Point Pinokio at the repo URL; the menu is state-aware
+  (Install → Start/Update/Reset → Stop). Needs a local Ollama with the configured
+  models pulled.
 
 ## Commands
 
@@ -121,7 +152,7 @@ The daemon is a foreground process; to run it unattended, launch it with `python
 
 ```pwsh
 # One-off / at logon. Runs ONE daemon per machine (single GPU, one model resident).
-pythonw -m ollamaq.cli daemon --config config/models.yaml *> C:\_Work\Claude_Coded\endless-code\daemon.log
+pythonw -m ollamaq.cli daemon --config config/models.yaml *> daemon.log
 ```
 
 Register it as a Scheduled Task set to "Run whether user is logged on or not" with

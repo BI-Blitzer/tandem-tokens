@@ -1,0 +1,33 @@
+# Keep the build context (and thus the wheel) small and reproducible.
+.git
+.github
+.venv
+venv
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+build
+dist
+
+# Runtime artifacts — never bake these into the image.
+queue/
+results/
+cache/
+demo/
+data/
+config/bench.json
+*.log
+
+# Docs / dev-only assets not needed at runtime.
+docs/
+tests/
+examples/
+
+# Pinokio launcher scripts (root-level, per Pinokio convention) — not for the image.
+pinokio.js
+install.js
+start.js
+stop.js
+update.js
+reset.js
