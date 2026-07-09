@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import platform
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional
 
@@ -165,7 +166,8 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
 
     run_json: dict[str, Any] = {
         "job_id": results_dir.name, "name": spec.name, "mode": spec.mode.value,
-        "model": model, "items": st["items"], "ok": st["ok"], "failed": st["fail"],
+        "model": model, "host": platform.node(), "input": spec.input.describe(),
+        "items": st["items"], "ok": st["ok"], "failed": st["fail"],
         "cached": st["cached"], "escalated": st["escalated"], "streamed": True,
         "success_rate": st["ok"] / st["items"] if st["items"] else 0.0,
         "prompt_tokens": st["ptok"], "completion_tokens": st["ctok"],
@@ -175,7 +177,7 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
             r.model: r.usd for r in estimate_all(pricing, st["ptok"], st["ctok"])}
     (results_dir / "run.json").write_text(json.dumps(run_json, indent=2), encoding="utf-8")
     append_ledger_entry(results_dir.parent, {k: run_json[k] for k in (
-        "job_id", "name", "mode", "model", "items", "ok", "failed", "cached",
-        "escalated", "prompt_tokens", "completion_tokens")}
+        "job_id", "name", "mode", "model", "host", "input", "items", "ok", "failed",
+        "cached", "escalated", "prompt_tokens", "completion_tokens")}
         | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
            if "estimated_cloud_cost_usd" in run_json else {}))

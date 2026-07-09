@@ -77,6 +77,24 @@ class Scoreboard:
         return "\n".join(lines)
 
 
+def format_history(entries: list[dict], limit: int = 20) -> str:
+    """Readable run history: when / where (host + input) / what (mode+model) /
+    token counts. Most recent last. ASCII (console is cp1252 on Windows)."""
+    rows = entries[-limit:] if limit > 0 else entries
+    if not rows:
+        return "no runs recorded yet."
+    header = f"{'when (UTC)':20} {'host':12} {'input':24} {'mode/model':26} {'tok in/out':>13}"
+    lines = [header, "-" * len(header)]
+    for e in rows:
+        when = str(e.get("ts", ""))[:19]
+        host = str(e.get("host", "") or "-")[:11]
+        inp = str(e.get("input", "") or "-")[:23]
+        what = f"{e.get('mode','?')}/{e.get('model','?')}"[:25]
+        tok = f"{e.get('prompt_tokens',0)}/{e.get('completion_tokens',0)}"
+        lines.append(f"{when:20} {host:12} {inp:24} {what:26} {tok:>13}")
+    return "\n".join(lines)
+
+
 def summarize(entries: list[dict]) -> Scoreboard:
     """Aggregate ledger entries into a Scoreboard."""
     sb = Scoreboard()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ollamaq.ledger import append_entry, read_entries, summarize
+from ollamaq.ledger import append_entry, format_history, read_entries, summarize
 
 
 def _entry(**over) -> dict:
@@ -52,6 +52,31 @@ def test_summarize_totals(tmp_path: Path) -> None:
 
 def test_summarize_empty() -> None:
     assert "no jobs recorded" in summarize([]).format()
+
+
+def test_history_shows_when_where_what_tokens(tmp_path: Path) -> None:
+    append_entry(tmp_path, _entry(job_id="run1", host="DESKTOP-1", input="csv:data.csv",
+                                  mode="map", model="qwen2.5-14b-16k",
+                                  prompt_tokens=1187, completion_tokens=813))
+    out = format_history(read_entries(tmp_path))
+    assert "when (UTC)" in out and "host" in out
+    assert "DESKTOP-1" in out            # where (machine)
+    assert "csv:data.csv" in out         # where (input)
+    assert "map/qwen2.5-14b-16k" in out  # what
+    assert "1187/813" in out             # token counts
+    assert out.isascii()
+
+
+def test_history_empty() -> None:
+    assert "no runs recorded" in format_history([])
+
+
+def test_history_limit(tmp_path: Path) -> None:
+    for i in range(30):
+        append_entry(tmp_path, _entry(job_id=f"r{i}", input=f"csv:f{i}.csv"))
+    out = format_history(read_entries(tmp_path), limit=5)
+    assert out.count("\n") == 6          # header + separator + 5 rows
+    assert "f29.csv" in out and "f00.csv" not in out  # last 5 only
 
 
 def test_format_headlines_model(tmp_path: Path) -> None:

@@ -77,6 +77,12 @@ class InputSpec(BaseModel):
                 raise ValueError(f"input.kind={self.kind.value!r} requires `path`")
         return self
 
+    def describe(self) -> str:
+        """Short 'where the data came from' descriptor for the run history."""
+        if self.kind == InputKind.inline:
+            return f"inline:{len(self.values or [])}"
+        return f"{self.kind.value}:{self.path}"
+
 
 class PromptSpec(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)

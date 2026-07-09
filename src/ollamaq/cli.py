@@ -33,7 +33,8 @@ from .eta import bench_lookup, project
 from .execute import execute_spec
 from .gpu import detect_gpu, recommend as build_recommendation
 from .jobspec import Mode, load_jobspec
-from .ledger import read_entries as read_ledger, summarize as summarize_ledger
+from .ledger import (read_entries as read_ledger, format_history,
+                     summarize as summarize_ledger)
 from .pricing import load_pricing
 from .queue import JobQueue, State
 from .stream import run_stream
@@ -432,6 +433,15 @@ def recommend(
     typer.echo(rec.format())
     if bench is None:
         typer.echo("\n(tip: run `ollamaq bench` to add measured tok/s to this report)")
+
+
+@app.command()
+def history(
+    results_root: Path = typer.Option(DEFAULT_RESULTS_ROOT, "--results"),
+    limit: int = typer.Option(20, "--limit", help="Show the last N runs (0 = all)."),
+) -> None:
+    """Print the run history: when, where (host + input), what, and token counts."""
+    typer.echo(format_history(read_ledger(results_root), limit=limit))
 
 
 @app.command()

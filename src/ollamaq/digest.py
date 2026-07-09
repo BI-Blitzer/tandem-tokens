@@ -16,6 +16,7 @@ Layout written by write_results():
 from __future__ import annotations
 
 import json
+import platform
 from pathlib import Path
 
 from .jobspec import JobSpec, Mode
@@ -188,6 +189,8 @@ def write_results(job_id: str, spec: JobSpec, run: RunResult, root: Path,
         "name": spec.name,
         "mode": spec.mode.value,
         "model": run.model,
+        "host": platform.node(),
+        "input": spec.input.describe(),
         "items": len(run.results),
         "ok": run.ok_count,
         "failed": run.fail_count,
@@ -215,7 +218,7 @@ def write_results(job_id: str, spec: JobSpec, run: RunResult, root: Path,
 
     # Append this job to the cumulative savings ledger (the running scoreboard).
     append_ledger_entry(root, {k: run_json[k] for k in (
-        "job_id", "name", "mode", "model", "items", "ok", "failed",
+        "job_id", "name", "mode", "model", "host", "input", "items", "ok", "failed",
         "cached", "escalated", "wall_seconds", "prompt_tokens", "completion_tokens",
     )} | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
           if "estimated_cloud_cost_usd" in run_json else {}))
