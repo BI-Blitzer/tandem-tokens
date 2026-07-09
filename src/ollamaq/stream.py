@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import platform
+import time
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional
 
@@ -67,8 +68,9 @@ async def run_stream(config: Config, spec: JobSpec, results_dir: Path,
 
     results_dir.mkdir(parents=True, exist_ok=True)
     st = {"ok": 0, "fail": 0, "items": 0, "cached": 0, "escalated": 0,
-          "ptok": 0, "ctok": 0, "samples": [], "failures": [], "dims": set()}
+          "ptok": 0, "ctok": 0, "wall": 0.0, "samples": [], "failures": [], "dims": set()}
     sem = asyncio.Semaphore(max_parallel)
+    start = time.perf_counter()
 
     merged_f = (results_dir / "merged.jsonl").open("w", encoding="utf-8")
     failed_f = (results_dir / "failed_items.jsonl").open("w", encoding="utf-8")
@@ -114,6 +116,7 @@ async def run_stream(config: Config, spec: JobSpec, results_dir: Path,
         merged_f.close()
         failed_f.close()
 
+    st["wall"] = round(time.perf_counter() - start, 3)
     _write_stream_digest(spec, model, st, results_dir, pricing)
     return {"ok": st["ok"], "fail": st["fail"], "items": st["items"], "model": model}
 
@@ -170,6 +173,7 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
         "items": st["items"], "ok": st["ok"], "failed": st["fail"],
         "cached": st["cached"], "escalated": st["escalated"], "streamed": True,
         "success_rate": st["ok"] / st["items"] if st["items"] else 0.0,
+        "wall_seconds": st["wall"],
         "prompt_tokens": st["ptok"], "completion_tokens": st["ctok"],
     }
     if pricing is not None and not is_embed:
@@ -178,6 +182,6 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
     (results_dir / "run.json").write_text(json.dumps(run_json, indent=2), encoding="utf-8")
     append_ledger_entry(results_dir.parent, {k: run_json[k] for k in (
         "job_id", "name", "mode", "model", "host", "input", "items", "ok", "failed",
-        "cached", "escalated", "prompt_tokens", "completion_tokens")}
+        "cached", "escalated", "wall_seconds", "prompt_tokens", "completion_tokens")}
         | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
            if "estimated_cloud_cost_usd" in run_json else {}))
