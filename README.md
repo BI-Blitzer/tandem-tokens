@@ -37,8 +37,11 @@ Licensed under the [MIT License](LICENSE).
 
 In a Claude Code session in this repo: **`/offload`** turns a bulk task into a validated
 job spec and submits it; the daemon drains it locally; **`/harvest`** reads the digest
-and runs the reduce/clean pass only on the residue. See [CLAUDE.md](CLAUDE.md) for the
-when-to-offload policy.
+and runs the reduce/clean pass only on the residue. A `UserPromptSubmit` **hook**
+(`hooks/auto_offload.py`) also nudges Claude to offload when a prompt looks like bulk
+data work. See [CLAUDE.md](CLAUDE.md) for the when-to-offload policy. Three integration
+surfaces in total: the **hook** (proactive nudge), the **MCP** server (tools), and the
+**skills** (`/offload`, `/harvest`).
 
 ## Install
 

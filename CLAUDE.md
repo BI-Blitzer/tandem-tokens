@@ -49,6 +49,15 @@ Offload when the task is **(a) ≥ ~20 similar independent items**, AND one of:
    Opus/Sonnet reduce/clean pass over the residue the local model got wrong
    (guided by the digest's failures/samples), then write the final artifact.
 
+## Auto-offload nudge (hook)
+
+A `UserPromptSubmit` hook (`hooks/auto_offload.py`, registered in
+`.claude/settings.json`) scans each prompt and, when it looks like a bulk
+mechanical data task, injects a `[tandem-tokens]` suggestion naming the likely
+mode. It surfaces the opportunity — you still decide whether to `/offload`. It
+stays silent on ordinary prompts. (A hook can't auto-*execute* a job: a prompt
+isn't a validated job spec.)
+
 ## MCP tools (alternative to the CLI)
 
 An MCP server (`.mcp.json`) exposes `ollama_quick` (one-shot, output-capped —

@@ -5,5 +5,17 @@
       "Bash(python -m ollamaq.cli:*)",
       "Bash(py -m ollamaq.cli:*)"
     ]
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/auto_offload.py"
+          }
+        ]
+      }
+    ]
   }
 }
