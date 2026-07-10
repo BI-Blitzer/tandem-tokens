@@ -28,6 +28,7 @@ from .errors import (
 ENV_CONFIG = "OLLAMAQ_CONFIG"
 ENV_HOME = "OLLAMAQ_HOME"
 ENV_BASE_URL = "OLLAMAQ_BASE_URL"
+ENV_API_KEY = "OLLAMAQ_API_KEY"
 
 
 def normalize_model_name(name: str) -> str:
@@ -48,6 +49,10 @@ class OllamaSettings(BaseModel):
     base_url: str = "http://localhost:11434"
     timeout_s: float = 300.0
     keep_alive: str = "30m"
+    # Sent as "Authorization: Bearer <key>" when set — for a remote Ollama behind
+    # an authenticating reverse proxy. Prefer $OLLAMAQ_API_KEY over putting a
+    # secret in a yaml that may be committed.
+    api_key: str | None = None
 
 
 class ModelEntry(BaseModel):
@@ -145,11 +150,15 @@ def load_config(path: str | Path | None = None) -> Config:
                 cfg = Config.model_validate(raw)
             except ValidationError as exc:
                 raise ConfigError(f"invalid config {cand}: {exc}") from exc
-            # 12-factor override: let a container/host point at a different Ollama
-            # without editing models.yaml (e.g. host.docker.internal from Docker).
+            # 12-factor overrides: point at a different Ollama (e.g.
+            # host.docker.internal from Docker, or a remote VPS) and authenticate
+            # to a reverse proxy in front of it, without editing models.yaml.
             override = os.environ.get(ENV_BASE_URL)
             if override:
                 cfg.ollama.base_url = override
+            key = os.environ.get(ENV_API_KEY)
+            if key:
+                cfg.ollama.api_key = key
             return cfg
     searched = ", ".join(str(c) for c in candidates)
     raise ConfigError(f"no models.yaml found (searched: {searched})")

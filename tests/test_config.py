@@ -12,6 +12,7 @@ import pytest
 from pydantic import ValidationError
 
 from ollamaq.config import (
+    ENV_API_KEY,
     ENV_BASE_URL,
     ENV_CONFIG,
     Config,
@@ -55,6 +56,20 @@ def test_base_url_unset_keeps_config_value(config_file: Path,
     monkeypatch.delenv(ENV_BASE_URL, raising=False)
     cfg = load_config(config_file)
     assert cfg.ollama.base_url == "http://localhost:11434"
+
+
+def test_api_key_env_override(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # authenticate to a reverse proxy in front of a remote Ollama
+    monkeypatch.setenv(ENV_API_KEY, "tok-123")
+    cfg = load_config(config_file)
+    assert cfg.ollama.api_key == "tok-123"
+
+
+def test_api_key_default_is_none(config_file: Path,
+                                 monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv(ENV_API_KEY, raising=False)
+    cfg = load_config(config_file)
+    assert cfg.ollama.api_key is None
 
 
 def test_missing_file_raises(tmp_path: Path) -> None:

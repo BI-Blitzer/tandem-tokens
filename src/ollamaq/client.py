@@ -63,8 +63,11 @@ class OllamaClient:
 
     def __init__(self, settings: OllamaSettings | None = None) -> None:
         self.settings = settings or OllamaSettings()
+        headers = ({"Authorization": f"Bearer {self.settings.api_key}"}
+                   if self.settings.api_key else None)
         self._client = httpx.AsyncClient(
-            base_url=self.settings.base_url, timeout=self.settings.timeout_s
+            base_url=self.settings.base_url, timeout=self.settings.timeout_s,
+            headers=headers,
         )
 
     async def aclose(self) -> None:

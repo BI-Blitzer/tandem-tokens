@@ -49,6 +49,24 @@ async def test_ping_false_on_error() -> None:
 
 
 @respx.mock
+async def test_api_key_sends_bearer_header() -> None:
+    route = respx.get(f"{BASE}/api/version").mock(
+        return_value=httpx.Response(200, json={"version": "0.1"}))
+    async with OllamaClient(OllamaSettings(base_url=BASE, api_key="s3cret")) as c:
+        assert await c.ping() is True
+    assert route.calls.last.request.headers["Authorization"] == "Bearer s3cret"
+
+
+@respx.mock
+async def test_no_api_key_sends_no_auth_header() -> None:
+    route = respx.get(f"{BASE}/api/version").mock(
+        return_value=httpx.Response(200, json={"version": "0.1"}))
+    async with OllamaClient(_settings()) as c:
+        await c.ping()
+    assert "Authorization" not in route.calls.last.request.headers
+
+
+@respx.mock
 async def test_list_models() -> None:
     respx.get(f"{BASE}/api/tags").mock(
         return_value=httpx.Response(200, json={"models": [{"name": "gemma2:9b"}, {"name": "qwen3:8b"}]})

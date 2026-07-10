@@ -78,7 +78,16 @@ file: `--config` flag → `$OLLAMAQ_CONFIG` → `$OLLAMAQ_HOME/config/models.yam
 
 **Ollama endpoint:** `base_url` comes from `models.yaml`, but `$OLLAMAQ_BASE_URL`
 overrides it at runtime without editing the file — used by the Docker setup to
-reach the host's Ollama (`http://host.docker.internal:11434`).
+reach the host's Ollama (`http://host.docker.internal:11434`), and equally good
+for pointing at a **remote Ollama** (a VPS, another machine on your LAN or
+tailnet). `https://` URLs work as-is.
+
+**Remote auth:** Ollama's API has no built-in authentication — never expose the
+raw port to the internet. Either tunnel (SSH/VPN/Tailscale) and keep `base_url`
+private, or put an authenticating reverse proxy in front and set
+`$OLLAMAQ_API_KEY` (or `ollama.api_key` in models.yaml): every request then
+carries `Authorization: Bearer <key>`. Prefer the env var so the secret never
+lands in a committed file.
 
 ## Deploy
 
