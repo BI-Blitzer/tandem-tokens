@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ollamaq"
 version = "0.1.0"
-description = "Local Ollama offload harness for Claude Code: map-reduce job runner, file queue daemon, and thin MCP server"
+description = "Local Ollama offload harness for premium agents (Claude, Grok, Codex, …): map-reduce jobs, queue daemon, energy scoreboard, MCP"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "BI-Blitzer" }]
-keywords = ["ollama", "llm", "claude-code", "mcp", "map-reduce", "batch", "offload", "local-llm"]
+keywords = ["ollama", "llm", "mcp", "map-reduce", "batch", "offload", "local-llm", "grok", "claude", "codex", "energy"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -35,9 +35,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/BI-Blitzer/tandem-tokens"
+Homepage = "https://bi-blitzer.github.io/tandem-tokens/"
 Repository = "https://github.com/BI-Blitzer/tandem-tokens"
 Issues = "https://github.com/BI-Blitzer/tandem-tokens/issues"
+Documentation = "https://bi-blitzer.github.io/tandem-tokens/"
 
 [project.optional-dependencies]
 dev = [

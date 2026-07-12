@@ -6,36 +6,39 @@
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-6b6a64.svg)](#deploy)
 [![MCP server](https://img.shields.io/badge/MCP-server-17b58f.svg)](MCP.md)
 
-**Site: [bi-blitzer.github.io/tandem-tokens](https://bi-blitzer.github.io/tandem-tokens/)** · `pip`-installable, Docker + Pinokio launchers, cross-client MCP.
+**Site: [bi-blitzer.github.io/tandem-tokens](https://bi-blitzer.github.io/tandem-tokens/)** · `pip`-installable, Docker + Pinokio, cross-client MCP.
 
-Local Ollama offload harness for Claude Code. Claude (Opus/Sonnet) delegates
-map-phase and brute-force work to local models; results stay on disk; Claude
-reads only compact digests. See [PLAN.md](PLAN.md) for the full architecture and
-phase roadmap.
+**Local Ollama offload harness for any premium agent.** Claude, Grok, Codex, Cursor,
+or the CLI alone can orchestrate map-phase work on your GPU; results stay on disk;
+the premium model reads only compact digests. Same contract everywhere — only the
+client config file format differs. See [PLAN.md](PLAN.md) for architecture;
+[docs/HYBRID_USE_CASES.md](docs/HYBRID_USE_CASES.md) for a live three-job campaign.
 
 **Status: complete (Phases 0–6 + hybrid/energy pack).** Sync map runner (`run`), file
-queue + daemon (`submit`/`daemon`/`status`/`cancel`), all three job modes (`map`,
-`gen_test` generate-and-verify loop, `pipeline` chained stages), vision inputs, digests
-with cloud-cost savings + cumulative `score` scoreboard, a dedupe cache, model
-escalation (local or optional `cloud:grok`), `--sample` ETA, GPU-aware `recommend`,
-cross-client MCP (`clients/`), Grok facade (`ollamaq-mcp-grok`), and hybrid skills
-(`skills/hybrid`, `AGENTS.md`, Claude `/offload` `/harvest` `/hybrid`).
+queue + daemon (`submit`/`daemon`/`status`/`cancel`), job modes `map` / `gen_test` /
+`pipeline` / `embed`, vision inputs, digests with cloud-cost savings + cumulative
+`score` scoreboard, dedupe cache, model escalation (local or optional `cloud:grok`),
+`--sample` ETA, GPU-aware `recommend`, cross-client MCP (`clients/`), optional Grok
+facade (`ollamaq-mcp-grok`), and hybrid skills (`skills/hybrid`, `AGENTS.md`, plus
+Claude-oriented `/offload` · `/harvest` under `.claude/skills/`).
 
-**Energy:** each job can meter GPU Wh via nvidia-smi; `config/energy.yaml` turns that
-into local `$` and optional CO₂. `ollamaq score` shows cloud $ avoided, local energy
-cost, and net vs the headline cloud model. Smoke: `examples/energy_smoke.job.json`.
+**Energy:** nvidia-smi meters GPU Wh; `config/energy.yaml` turns that into local `$`
+and optional CO₂. `ollamaq score` shows cloud $ avoided, energy cost, and net vs the
+headline cloud model. Smoke: `examples/energy_smoke.job.json`.
 
 ## Documentation
 
 | Doc | What |
 |---|---|
 | [PLAN.md](PLAN.md) | Full architecture + the phase-by-phase build log (design, decisions, live results). |
-| [CLAUDE.md](CLAUDE.md) | Delegation policy — when Claude should/shouldn't offload, routing, the digest-only contract. |
-| [MCP.md](MCP.md) | Using the MCP server from Claude Code/Desktop, Codex, Grok, Cursor, and other MCP clients. |
-| [clients/README.md](clients/README.md) | Drop-in MCP configs per client (JSON/TOML) + hybrid skill pointers. |
-| [AGENTS.md](AGENTS.md) | Codex / multi-agent hybrid policy (pairs with `skills/hybrid/SKILL.md`). |
-| [docs/index.html](docs/index.html) | A self-contained landing page: interactive savings calculator, requirements, platform support, MCP hooks. Open locally or serve via GitHub Pages (`/docs`). |
-| [docs/HYBRID_USE_CASES.md](docs/HYBRID_USE_CASES.md) | Three-job hybrid campaign (map / pipeline / summarize): resource order, job specs, live results. |
+| [AGENTS.md](AGENTS.md) | Hybrid policy for Codex, Cursor, Grok CLI, and other agents. |
+| [CLAUDE.md](CLAUDE.md) | Same policy, Claude Code–oriented (skills + hook). |
+| [skills/hybrid/SKILL.md](skills/hybrid/SKILL.md) | Portable skill — works across clients. |
+| [MCP.md](MCP.md) | MCP setup for Claude, Grok, Codex, Cursor, and generic hosts. |
+| [clients/README.md](clients/README.md) | Drop-in MCP configs (JSON/TOML) per client. |
+| [docs/index.html](docs/index.html) | Public landing page (GitHub Pages `/docs`): calculator, use cases, MCP. |
+| [docs/HYBRID_USE_CASES.md](docs/HYBRID_USE_CASES.md) | Live three-job campaign (map / pipeline / summarize). |
+| [docs/CAMPAIGN_FINDINGS.md](docs/CAMPAIGN_FINDINGS.md) | Premium reduce write-up from campaign digests. |
 | this README | Install, commands, workflow. |
 
 ## Security
@@ -49,15 +52,24 @@ expose the MCP server to an untrusted network.
 
 Licensed under the [MIT License](LICENSE).
 
-## Claude workflow
+## Hybrid workflow (any premium agent)
 
-In a Claude Code session in this repo: **`/offload`** turns a bulk task into a validated
-job spec and submits it; the daemon drains it locally; **`/harvest`** reads the digest
-and runs the reduce/clean pass only on the residue. A `UserPromptSubmit` **hook**
-(`hooks/auto_offload.py`) also nudges Claude to offload when a prompt looks like bulk
-data work. See [CLAUDE.md](CLAUDE.md) for the when-to-offload policy. Three integration
-surfaces in total: the **hook** (proactive nudge), the **MCP** server (tools), and the
-**skills** (`/offload`, `/harvest`).
+1. **Offload** bulk work via CLI (`ollamaq submit` / `run`) or MCP `queue_submit`.
+2. Ensure one **daemon** is running (`ollamaq daemon` or `scripts/start_daemon.ps1`).
+3. **Harvest** only the digest (`ollamaq digest` / MCP `queue_digest`) — never bulk
+   worker output into the chat.
+4. **Score** with `ollamaq score` / MCP `hybrid_score` (tokens, cloud $, GPU Wh).
+
+| Client | How to wire |
+|--------|-------------|
+| **CLI only** | No MCP required — full `ollamaq` surface |
+| **Claude Code** | `.mcp.json` + skills `/offload` · `/harvest` · [CLAUDE.md](CLAUDE.md) |
+| **Grok** | `.grok/config.toml` (project) or `clients/grok.mcp.json` |
+| **Codex** | `clients/codex.config.toml` → `~/.codex/config.toml` + [AGENTS.md](AGENTS.md) |
+| **Cursor / others** | `clients/cursor.mcp.json` or `clients/generic.mcp.json` |
+
+Portable policy: [skills/hybrid/SKILL.md](skills/hybrid/SKILL.md). Claude-only extras:
+optional `UserPromptSubmit` hook (`hooks/auto_offload.py`) and `.claude/skills/`.
 
 ## Install
 
@@ -74,8 +86,8 @@ py -m build                                  # -> dist/ollamaq-<ver>-py3-none-an
 py -m pip install dist/ollamaq-*.whl
 ```
 
-Both expose two console scripts: **`ollamaq`** (the CLI) and **`ollamaq-mcp`**
-(the MCP server, equivalent to `python -m ollamaq.mcp_server`).
+Console scripts: **`ollamaq`** (CLI), **`ollamaq-mcp`** (`python -m ollamaq.mcp_server`),
+and **`ollamaq-mcp-grok`** (optional Grok-oriented aliases).
 
 ## Configure
 
@@ -135,8 +147,7 @@ ollamaq watch                   # live dashboard: queue state + savings scoreboa
 ollamaq status nightly-clean    # one job's state + resolved model + error
 ollamaq cancel nightly-clean    # remove a still-pending job
 ollamaq digest nightly-clean    # print results/<job_id>/digest.md
-ollamaq score                   # cumulative scoreboard: local tokens run for $0
-                                #   and total cloud spend avoided across all jobs
+ollamaq score                   # scoreboard: local tokens, cloud $ avoided, GPU Wh/$
 ollamaq recommend               # which installed models fit this GPU vs. spill to CPU
 ```
 
@@ -155,12 +166,10 @@ cost 0 tokens and skip generation — a re-run of an unchanged job is near-insta
 Cache lives under `cache/` (override with `OLLAMAQ_CACHE`); it's bounded to
 `OLLAMAQ_CACHE_MAX_ENTRIES` entries (default 10000, oldest evicted; 0 = unbounded).
 
-`retry.escalate_to: <model>` gives an item that keeps failing schema on the
-primary model one attempt on a stronger local model before it's surfaced as a
-failure. `--sample N` on `run` probes the first N map items and prints a full-job
-time/token projection (then stops). `input.kind: images` (chunk `files`) sends
-each matched image to a vision model (`task_tag: vision` → `gemma3:4b`); see
-`examples/invoice_vision.job.json` for schema-constrained extraction from an image.
+`retry.escalate_to` gives one attempt on a stronger local model (or optional
+`cloud:grok`) after schema failures. `--sample N` projects full-job ETA from the
+first N items. `input.kind: images` sends files to a vision model (`task_tag: vision`
+→ `gemma3:4b`); see `examples/invoice_vision.job.json`.
 
 ## MCP — use from Claude, Codex, Grok, and other MCP clients
 
@@ -233,7 +242,6 @@ py -m pytest -m integration   # opt-in; requires a live Ollama (set OLLAMAQ_LIVE
 | `pricing.py` | Estimate cloud $ avoided, per model, into the digest | `ConfigError` |
 | `cli.py` | Typer commands; thin wrappers over the above | exits with codes above |
 
-Contract rules that later phases must not break: (1) model names appear only in
-`models.yaml`; (2) `client.py` is the sole HTTP module; (3) `bench.bench_one`
-never raises; (4) worker/job output must never be returned through Claude's
-context — only digests (enforced from Phase 1 on).
+Contract rules: (1) model names appear only in `models.yaml`; (2) `client.py` is
+the sole HTTP path to Ollama; (3) `bench.bench_one` never raises; (4) worker
+output must never flood a premium agent's context — only digests.

@@ -11,7 +11,7 @@
 module.exports = {
   version: "3.0",
   title: "ollamaq",
-  description: "Local Ollama offload harness for Claude Code: map-reduce batch jobs + queue daemon.",
+  description: "Local Ollama offload harness for Claude, Grok, Codex, and other agents: map-reduce batch jobs + queue daemon.",
   menu: async (kernel, info) => {
     const installed = info.exists("env");           // venv created by install.js?
     const running = info.running("start.js");        // daemon process alive?

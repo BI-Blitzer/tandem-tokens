@@ -63,7 +63,7 @@ def queue_status(job_id: Optional[str] = None) -> str:
 
 @mcp.tool()
 def queue_digest(job_id: str) -> str:
-    """Return a finished job's digest.md (the compact, Claude-facing summary)."""
+    """Return a finished job's digest.md (the compact, premium-agent summary)."""
     return mcp_core.digest(_RESULTS_ROOT, job_id)
 
 

@@ -18,7 +18,7 @@ args:    ["-m", "ollamaq.mcp_server"]
 | `ollama_quick(prompt, model?, task_tag?, schema?)` | One-shot local generation, output capped (~2k tokens) so it never floods context. |
 | `queue_submit(jobspec, job_id?)` | Enqueue a batch job for the daemon; returns the job id. |
 | `queue_status(job_id?)` | Queue state — counts, or one job's detail. |
-| `queue_digest(job_id)` | A finished job's ≤8 KB digest (the Claude-facing summary). |
+| `queue_digest(job_id)` | A finished job's ≤8 KB digest (the premium-agent summary). |
 | `recommend_models()` | GPU-aware advice: which local models fit this machine (vs. spill to CPU). |
 | `hybrid_score()` | Cumulative scoreboard: local tokens, cloud $ avoided, GPU energy (Wh). |
 | `hybrid_energy()` | Live nvidia-smi power sample (watts / limit / temp). |
