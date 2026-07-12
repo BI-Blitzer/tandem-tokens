@@ -1,0 +1,63 @@
+{
+  "name": "real-uc3-docs",
+  "mode": "map",
+  "model": "hermes3-8b-32k",
+  "task_tag": "summarize",
+  "input": {
+    "kind": "jsonl",
+    "path": "data/real/docs.jsonl",
+    "chunk": {
+      "strategy": "rows",
+      "size": 1
+    }
+  },
+  "prompt": {
+    "system": "You are a technical summarizer. Output ONLY JSON. No prose, no fences.",
+    "template": "Summarize the document JSON below.\nReturn {\"id\": \"...\", \"domain\": \"...\", \"title\": \"...\", \"summary\": \"<=40 words\", \"key_points\": [\"3 short bullets\"], \"campaign_refs\": [\"any CAMPAIGN-\u2026 ids found\"]}.\nDocument:\n{{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": [
+        "id",
+        "domain",
+        "title",
+        "summary",
+        "key_points",
+        "campaign_refs"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "key_points": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "campaign_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "params": {
+    "temperature": 0.1,
+    "num_ctx": 32768
+  },
+  "retry": {
+    "max_attempts": 2,
+    "on_schema_fail": "repair_then_retry"
+  }
+}

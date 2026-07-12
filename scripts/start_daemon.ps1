@@ -21,7 +21,12 @@ if (-not $pyCmd) { throw "python not found on PATH" }
 $py = $pyCmd.Source
 
 $existing = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
-    Where-Object { $_.CommandLine -and ($_.CommandLine -like "*ollamaq*daemon*") }
+    Where-Object {
+        $_.CommandLine -and (
+            $_.CommandLine -like "*ollamaq.cli*daemon*" -or
+            $_.CommandLine -like "*ollamaq* daemon*"
+        ) -and ($_.CommandLine -notlike "*mcp*")
+    }
 if ($existing) {
     Write-Host ("daemon already running (PID {0})" -f ($existing.ProcessId -join ", "))
     exit 0

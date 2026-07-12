@@ -18,4 +18,7 @@ demo/
 data/*
 !data/hybrid_campaign/
 !data/hybrid_campaign/**
+!data/real/
+!data/real/README.md
+# keep real production exports private (csv/jsonl stay ignored under data/*)
 *.log
