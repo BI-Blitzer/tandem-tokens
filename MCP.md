@@ -20,10 +20,30 @@ args:    ["-m", "ollamaq.mcp_server"]
 | `queue_status(job_id?)` | Queue state — counts, or one job's detail. |
 | `queue_digest(job_id)` | A finished job's ≤8 KB digest (the Claude-facing summary). |
 | `recommend_models()` | GPU-aware advice: which local models fit this machine (vs. spill to CPU). |
+| `hybrid_score()` | Cumulative scoreboard: local tokens, cloud $ avoided, GPU energy (Wh). |
+| `hybrid_energy()` | Live nvidia-smi power sample (watts / limit / temp). |
+| `hybrid_policy()` | When to offload vs. keep work in premium context. |
 
 Bulk work goes through `queue_submit` (run `ollamaq daemon` to drain it); only
 `ollama_quick`'s small capped output and the digests ever return to the model's
 context — the token-economy contract holds across every client.
+
+### Grok facade (`ollamaq-mcp-grok`)
+
+For xAI Grok as the premium orchestrator, prefer the Grok-oriented entry point:
+
+```
+command: python
+args:    ["-m", "ollamaq.mcp_grok"]
+# or console script: ollamaq-mcp-grok
+```
+
+It registers the same tools **plus** hybrid aliases (`hybrid_offload`,
+`hybrid_digest`, `hybrid_quick`, …) with descriptions written for Grok.
+Drop-in config: [`clients/grok.mcp.json`](clients/grok.mcp.json).
+
+Portable skill (Claude / Grok / Codex): [`skills/hybrid/SKILL.md`](skills/hybrid/SKILL.md)
+(also mirrored under `.claude/skills/hybrid/` for Claude Code).
 
 ## Security — verifier commands over MCP
 
@@ -87,7 +107,7 @@ Edit `claude_desktop_config.json`
 ## OpenAI Codex (CLI)
 
 Codex reads `~/.codex/config.toml`. MCP servers go under `[mcp_servers.<name>]`
-(TOML, not JSON):
+(TOML, not JSON). Ready-to-merge file: [`clients/codex.config.toml`](clients/codex.config.toml).
 
 ```toml
 [mcp_servers.ollamaq]
@@ -99,12 +119,82 @@ args = ["-m", "ollamaq.mcp_server"]
 # OLLAMAQ_HOME = "<PROJECT>"
 ```
 
+**Project instructions for Codex:** this repo’s [`AGENTS.md`](AGENTS.md) +
+[`skills/hybrid/SKILL.md`](skills/hybrid/SKILL.md). Codex loads `AGENTS.md`
+when the workspace is the project — same offload/harvest contract as Claude’s
+`CLAUDE.md`, without requiring Claude-only skill paths.
+
+**CLI fallback:** if MCP is unavailable, Codex can still drive everything via
+shell: `ollamaq submit|run|status|digest|score` (no tool registration needed).
+
+## Cursor
+
+Project or user MCP JSON (Cursor Settings → MCP, or `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "ollamaq": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_server"]
+    }
+  }
+}
+```
+
+See [`clients/cursor.mcp.json`](clients/cursor.mcp.json). Same standard tool
+names as Claude/Codex. Point Cursor at [`AGENTS.md`](AGENTS.md) / the hybrid
+skill for policy.
+
+## VS Code, Continue, Cline, Windsurf, other JSON MCP hosts
+
+Use the generic Claude-shaped block
+([`clients/generic.mcp.json`](clients/generic.mcp.json)). Product-specific
+keys may differ slightly (`mcpServers` vs `mcp` vs nested `servers`) — keep
+`command` / `args` identical:
+
+```
+command: python
+args:    ["-m", "ollamaq.mcp_server"]
+```
+
+Full client matrix: [`clients/README.md`](clients/README.md).
+
 ## xAI Grok
 
-Grok clients that support MCP use the same stdio launch. For a JSON-config client
-(the common shape), use the Claude-style block above verbatim; for a TOML-config
-client, use the Codex block. The server command/args never change — only the
-wrapper file format does, and the `env` is optional for editable installs.
+Prefer the Grok facade (hybrid_* tool names + policy tools):
+
+```json
+{
+  "mcpServers": {
+    "ollamaq-grok": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_grok"],
+      "env": { "OLLAMAQ_HOME": "<PROJECT>" }
+    }
+  }
+}
+```
+
+See [`clients/grok.mcp.json`](clients/grok.mcp.json). The standard
+`python -m ollamaq.mcp_server` also works if you only need the classic tool names.
+
+### Optional Grok API fallback (residual escalate)
+
+In `config/models.yaml`, enable cloud Grok for items that still fail after local
+repair/escalate:
+
+```yaml
+cloud:
+  grok:
+    enabled: true
+    default_model: grok-3-mini
+fallbacks:
+  escalate_to: "cloud:grok"   # or cloud:grok/grok-3
+```
+
+Set `$XAI_API_KEY` or `$GROK_API_KEY`. Primary map path stays local; only
+`retry.escalate_to: auto` / config fallbacks hit the API.
 
 ---
 

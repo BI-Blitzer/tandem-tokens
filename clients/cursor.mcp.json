@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "ollamaq": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_server"],
+      "env": {
+        "OLLAMAQ_HOME": "<PROJECT>"
+      }
+    }
+  }
+}

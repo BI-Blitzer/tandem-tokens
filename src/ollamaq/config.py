@@ -71,6 +71,40 @@ class Defaults(BaseModel):
     temperature: float = 0.1
 
 
+class GrokCloudSettings(BaseModel):
+    """Optional xAI Grok fallback (OpenAI-compatible). Disabled by default."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = False
+    base_url: str = "https://api.x.ai/v1"
+    # Prefer $XAI_API_KEY / $GROK_API_KEY over committing a key here.
+    api_key: str | None = None
+    default_model: str = "grok-3-mini"
+    timeout_s: float = 120.0
+
+
+class CloudSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    grok: GrokCloudSettings = GrokCloudSettings()
+
+
+class FallbackSettings(BaseModel):
+    """Escalation when local schema repair fails.
+
+    ``escalate_to`` may be a local model name, or a cloud target:
+    ``cloud:grok`` or ``cloud:grok/grok-3-mini``. Job-spec ``retry.escalate_to``
+    overrides this; use ``"auto"`` in the job to take the config default.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    escalate_to: str | None = None
+    # Optional per-task overrides (same string forms as escalate_to).
+    by_task_tag: dict[str, str] = {}
+
+
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -78,6 +112,8 @@ class Config(BaseModel):
     defaults: Defaults
     models: dict[str, ModelEntry]
     routing: dict[str, str]
+    cloud: CloudSettings = CloudSettings()
+    fallbacks: FallbackSettings = FallbackSettings()
 
     @model_validator(mode="after")
     def _check_references(self) -> "Config":
@@ -88,20 +124,37 @@ class Config(BaseModel):
         for tag, target in self.routing.items():
             if target not in self.models:
                 raise ValueError(f"routing.{tag} points to undefined model {target!r}")
+        # Local fallback targets must exist; cloud:… is validated at resolve time.
+        for label, target in [
+            ("fallbacks.escalate_to", self.fallbacks.escalate_to),
+            *[
+                (f"fallbacks.by_task_tag.{t}", m)
+                for t, m in self.fallbacks.by_task_tag.items()
+            ],
+        ]:
+            if target and not target.startswith("cloud:") and target not in self.models:
+                raise ValueError(f"{label} points to undefined model {target!r}")
         return self
 
     def resolve_model(self, model: str | None, task_tag: str | None) -> str:
-        """Resolve which model a job runs on.
+        """Resolve which *local* model a job runs on.
 
         Rules (exact, in order):
           1. An explicit model name (anything except None/"auto") must exist in
              ``models`` and be enabled -> returned as-is.
              Raises UnknownModelError / ModelDisabledError otherwise.
+             Cloud targets (``cloud:…``) are NOT resolved here — use
+             ``resolve_escalate_target``.
           2. None/"auto" requires a task_tag; the tag is looked up in ``routing``.
              Raises ConfigError if no tag, UnknownTaskTagError if unrouted,
              ModelDisabledError if the routed target is disabled.
         """
         if model and model != "auto":
+            if model.startswith("cloud:"):
+                raise ConfigError(
+                    f"cloud target {model!r} cannot be the primary model; "
+                    "use it only as retry.escalate_to / fallbacks.escalate_to"
+                )
             entry = self.models.get(model)
             if entry is None:
                 raise UnknownModelError(f"model {model!r} is not defined in models.yaml")
@@ -122,6 +175,47 @@ class Config(BaseModel):
                 f"routing for {task_tag!r} targets disabled model {target!r}"
             )
         return target
+
+    def resolve_escalate_target(
+        self, escalate_to: str | None, task_tag: str | None = None
+    ) -> str | None:
+        """Resolve the escalation target for a job.
+
+        - None / "" → config fallbacks (by_task_tag, then escalate_to)
+        - "auto" → same as config fallbacks
+        - local model name → must exist and be enabled
+        - cloud:grok[/model] → returned as-is (cloud path validates at call time)
+        """
+        raw = escalate_to
+        if not raw or raw == "auto":
+            if task_tag and task_tag in self.fallbacks.by_task_tag:
+                raw = self.fallbacks.by_task_tag[task_tag]
+            else:
+                raw = self.fallbacks.escalate_to
+        if not raw:
+            return None
+        if raw.startswith("cloud:"):
+            return raw
+        # Local model — same rules as resolve_model explicit name.
+        return self.resolve_model(raw, None)
+
+    def grok_settings_or_none(self):
+        """Return GrokSettings if cloud.grok is enabled and a key is available."""
+        from .cloud import GrokSettings, resolve_grok_api_key
+
+        g = self.cloud.grok
+        if not g.enabled:
+            return None
+        key = resolve_grok_api_key(g.api_key)
+        if not key:
+            return None
+        return GrokSettings(
+            base_url=g.base_url,
+            api_key=key,
+            default_model=g.default_model,
+            timeout_s=g.timeout_s,
+            enabled=True,
+        )
 
 
 def config_search_paths() -> list[Path]:

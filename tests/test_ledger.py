@@ -50,6 +50,25 @@ def test_summarize_totals(tmp_path: Path) -> None:
     assert round(sb.cost_by_model["claude-haiku-4-5"], 4) == 0.002
 
 
+def test_summarize_energy() -> None:
+    entries = [
+        _entry(energy_wh=1.5, avg_power_w=100.0),
+        _entry(energy_wh=0.5, avg_power_w=200.0),
+        _entry(),  # no energy fields
+    ]
+    sb = summarize(entries)
+    assert sb.energy_jobs == 2
+    assert abs(sb.energy_wh - 2.0) < 1e-9
+    assert abs(sb.energy_kwh - 0.002) < 1e-12
+    out = sb.format()
+    assert "Wh" in out and "2" in out
+
+
+def test_format_mentions_cloud_api_zero() -> None:
+    out = summarize([_entry()]).format()
+    assert "cloud API $0" in out
+
+
 def test_summarize_empty() -> None:
     assert "no jobs recorded" in summarize([]).format()
 
@@ -57,13 +76,15 @@ def test_summarize_empty() -> None:
 def test_history_shows_when_where_what_tokens(tmp_path: Path) -> None:
     append_entry(tmp_path, _entry(job_id="run1", host="DESKTOP-1", input="csv:data.csv",
                                   mode="map", model="qwen2.5-14b-16k",
-                                  prompt_tokens=1187, completion_tokens=813))
+                                  prompt_tokens=1187, completion_tokens=813,
+                                  energy_wh=1.94))
     out = format_history(read_entries(tmp_path))
     assert "when (UTC)" in out and "host" in out
     assert "DESKTOP-1" in out            # where (machine)
     assert "csv:data.csv" in out         # where (input)
     assert "map/qwen2.5-14b-16k" in out  # what
     assert "1187/813" in out             # token counts
+    assert "1.94" in out                 # energy Wh when metered
     assert out.isascii()
 
 
@@ -84,4 +105,4 @@ def test_format_headlines_model(tmp_path: Path) -> None:
     out = sb.format(headline_model="claude-opus-4-8")
     # headline model appears before the cheaper one in the cost list
     assert out.index("claude-opus-4-8") < out.index("claude-haiku-4-5")
-    assert "ran on local GPU for $0" in out
+    assert "cloud API $0" in out

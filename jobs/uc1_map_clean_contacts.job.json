@@ -1,0 +1,36 @@
+{
+  "name": "uc1-map-clean-contacts",
+  "mode": "map",
+  "model": "qwen2.5-14b-16k",
+  "task_tag": "clean",
+  "input": {
+    "kind": "csv",
+    "path": "data/hybrid_campaign/contacts_messy.csv",
+    "chunk": { "strategy": "rows", "size": 20 }
+  },
+  "prompt": {
+    "system": "You are a data cleaning engine. Output ONLY JSON. No prose, no markdown fences.",
+    "template": "Normalize each contact row.\nRules:\n1) name: trim, collapse spaces, Title Case.\n2) email: trim, lowercase.\n3) phone: strip ALL non-digits; if 11 digits and starts with 1, drop the leading 1; take the last 10 digits; format EXACTLY as ddd-ddd-dddd (three digits, dash, three, dash, four). NEVER use dots, spaces, or parentheses in phone.\nReturn {\"contacts\":[{\"id\":int,\"name\":str,\"email\":str,\"phone\":str}]} preserving id.\nInput CSV:\n{{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": ["contacts"],
+      "properties": {
+        "contacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "email", "phone"],
+            "properties": {
+              "id": { "type": "integer" },
+              "name": { "type": "string" },
+              "email": { "type": "string" },
+              "phone": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "params": { "temperature": 0.1, "num_ctx": 16384 },
+  "retry": { "max_attempts": 3, "on_schema_fail": "repair_then_retry" }
+}

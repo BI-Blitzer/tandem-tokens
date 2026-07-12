@@ -449,8 +449,8 @@ def score(
     results_root: Path = typer.Option(DEFAULT_RESULTS_ROOT, "--results"),
     config_path: Optional[Path] = typer.Option(None, "--config"),
 ) -> None:
-    """Print the cumulative scoreboard: local tokens run for $0 and the estimated
-    cloud spend avoided across every job in the ledger."""
+    """Print the cumulative scoreboard: local tokens, cloud $ avoided, GPU energy
+    (Wh / $ / CO2 when config/energy.yaml + nvidia-smi metering are available)."""
     entries = read_ledger(results_root)
     sb = summarize_ledger(entries)
     # headline against the pricing default_compare model when available
@@ -461,7 +461,13 @@ def score(
             headline = pricing.default_compare
     except OllamaqError:
         pass
-    typer.echo(sb.format(headline_model=headline))
+    energy_rates = None
+    try:
+        from .energy_cost import load_energy_rates
+        energy_rates = load_energy_rates()
+    except OllamaqError:
+        pass
+    typer.echo(sb.format(headline_model=headline, energy_rates=energy_rates))
 
 
 @app.command()

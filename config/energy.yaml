@@ -1,0 +1,14 @@
+# Local energy / materials cost factors for the scoreboard.
+# Used with nvidia-smi Wh metering to turn GPU energy into $ and optional CO2.
+# Edit for your region / tariff — nothing else hardcodes these numbers.
+
+# Grid electricity price (USD per kilowatt-hour). US residential average ballpark;
+# set your real rate for meaningful local cost.
+usd_per_kwh: 0.16
+
+# Optional: grid carbon intensity (grams CO2-equivalent per kWh).
+# Leave null to omit CO2 lines. US average ~350–400; use your utility number if known.
+g_co2_per_kwh: 380
+
+# Human label shown on the scoreboard (tariff name / region).
+label: "grid (edit config/energy.yaml)"

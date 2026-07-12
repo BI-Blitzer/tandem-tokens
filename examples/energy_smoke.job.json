@@ -1,0 +1,31 @@
+{
+  "name": "energy-smoke",
+  "mode": "map",
+  "model": "gemma2:9b",
+  "task_tag": "classify",
+  "input": {
+    "kind": "inline",
+    "values": [
+      "The battery is fully charged.",
+      "GPU power draw is high under load.",
+      "Local inference avoids cloud API fees.",
+      "Schedule the daemon at logon.",
+      "Digest only, never bulk context."
+    ],
+    "chunk": { "strategy": "rows", "size": 1 }
+  },
+  "prompt": {
+    "system": "You label short sentences. Output ONLY JSON.",
+    "template": "Classify the sentence as one of: energy, cost, ops, other.\nReturn {\"label\": \"...\", \"sentence\": \"...\"}.\nSentence:\n{{chunk}}",
+    "schema": {
+      "type": "object",
+      "required": ["label", "sentence"],
+      "properties": {
+        "label": { "type": "string" },
+        "sentence": { "type": "string" }
+      }
+    }
+  },
+  "params": { "temperature": 0.0 },
+  "retry": { "max_attempts": 2, "on_schema_fail": "repair_then_retry" }
+}

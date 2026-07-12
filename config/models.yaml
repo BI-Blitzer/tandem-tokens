@@ -57,3 +57,24 @@ routing:
   code: qwen2.5-14b-16k
   vision: "gemma3:4b"
   embed: "nomic-embed-text:latest"
+
+# Optional cloud backends for hybrid fallback (never the primary map path).
+# Enable only when you want residual escalate_to failures to hit xAI Grok.
+# Key: $XAI_API_KEY or $GROK_API_KEY (preferred over api_key here).
+cloud:
+  grok:
+    enabled: false
+    base_url: https://api.x.ai/v1
+    default_model: grok-3-mini
+    timeout_s: 120
+
+# Escalation when local schema repair fails. Job-spec retry.escalate_to wins;
+# set retry.escalate_to to "auto" (or omit + set defaults here) to use this.
+# Values: a local model name, or cloud:grok, or cloud:grok/grok-3-mini.
+fallbacks:
+  escalate_to: null
+  by_task_tag: {}
+  # Example once cloud.grok.enabled is true and a key is set:
+  # escalate_to: "cloud:grok"
+  # by_task_tag:
+  #   code: "cloud:grok/grok-3"

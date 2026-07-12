@@ -19,6 +19,7 @@ import json
 import platform
 from pathlib import Path
 
+from .energy_cost import EnergyRates, cost_for_wh, load_energy_rates
 from .jobspec import JobSpec, Mode
 from .ledger import append_entry as append_ledger_entry
 from .pricing import Pricing, estimate_all
@@ -42,7 +43,7 @@ def _savings_lines(run: RunResult, pricing: Pricing) -> list[str]:
     rows = estimate_all(pricing, pt, ct)
     lines = [
         "## estimated cloud cost avoided (map phase)",
-        f"local tokens processed: {pt} in / {ct} out — ran on local GPU for $0.",
+        f"local tokens processed: {pt} in / {ct} out — cloud API $0 on map phase.",
         "had this run on a cloud model instead (approx; tokenizers differ):",
     ]
     for r in rows:
@@ -50,8 +51,22 @@ def _savings_lines(run: RunResult, pricing: Pricing) -> list[str]:
         lines.append(f"- {r.label}: ~${r.usd:.4f}{flag}")
     lines.append(
         "note: this is the map-phase spend avoided; a Claude reduce/clean pass "
-        "over merged.jsonl still costs real tokens."
+        "over merged.jsonl still costs real tokens. Local GPU energy cost is "
+        "separate (see energy section when metered)."
     )
+    return lines
+
+
+def _energy_cost_lines(energy_wh: float, rates: EnergyRates) -> list[str]:
+    """Local $ and optional CO2 for metered Wh."""
+    line = cost_for_wh(rates, energy_wh)
+    lines = [
+        "## local energy cost (metered)",
+        f"- energy: {line.energy_wh:.4f} Wh ({line.energy_kwh:.6f} kWh)",
+        f"- cost: ~${line.usd:.6f} @ ${line.usd_per_kwh:.4f}/kWh ({line.label})",
+    ]
+    if line.co2_g is not None:
+        lines.append(f"- CO2e: ~{line.co2_g:.3f} g ({line.co2_g/1000.0:.6f} kg)")
     return lines
 
 
@@ -96,7 +111,10 @@ def build_digest_md(job_id: str, spec: JobSpec, run: RunResult, results_dir: Pat
           f"(0 new tokens)")
     if run.escalated_count:
         a(f"- escalated: {run.escalated_count} item(s) recovered on a stronger model "
-          f"(via retry.escalate_to)")
+          f"(via retry.escalate_to / cloud:grok)")
+    if run.energy_wh is not None:
+        a(f"- energy: ~{run.energy_wh:.4f} Wh "
+          f"(avg {run.avg_power_w or 0:.0f} W, peak {run.peak_power_w or 0:.0f} W)")
     a(f"- artifacts: {results_dir.as_posix()}  (merged.jsonl, items/, failed_items.jsonl)")
     a("")
     is_embed = spec.mode == Mode.embed
@@ -104,6 +122,12 @@ def build_digest_md(job_id: str, spec: JobSpec, run: RunResult, results_dir: Pat
     if pricing is not None and not is_embed:
         lines.extend(_savings_lines(run, pricing))
         a("")
+    # Energy $ / CO2 (optional rates file) — always useful when Wh was metered.
+    if run.energy_wh is not None:
+        rates = load_energy_rates()
+        if rates is not None:
+            lines.extend(_energy_cost_lines(run.energy_wh, rates))
+            a("")
 
     if is_embed:  # embed mode: report vectors as dim/count, never dump them
         dims = {r.value.get("dim") for r in ok if isinstance(r.value, dict)}
@@ -202,6 +226,17 @@ def write_results(job_id: str, spec: JobSpec, run: RunResult, root: Path,
         "prompt_tokens": run.total_prompt_tokens,
         "completion_tokens": run.total_completion_tokens,
     }
+    if run.energy_wh is not None:
+        run_json["energy_wh"] = run.energy_wh
+        run_json["avg_power_w"] = run.avg_power_w
+        run_json["peak_power_w"] = run.peak_power_w
+        rates = load_energy_rates()
+        if rates is not None:
+            eline = cost_for_wh(rates, run.energy_wh)
+            run_json["energy_usd"] = round(eline.usd, 6)
+            run_json["usd_per_kwh"] = eline.usd_per_kwh
+            if eline.co2_g is not None:
+                run_json["co2_g"] = round(eline.co2_g, 3)
     if pricing is not None:
         run_json["estimated_cloud_cost_usd"] = {
             r.model: r.usd
@@ -217,9 +252,13 @@ def write_results(job_id: str, spec: JobSpec, run: RunResult, root: Path,
     (results_dir / "digest.md").write_text(digest, encoding="utf-8")
 
     # Append this job to the cumulative savings ledger (the running scoreboard).
-    append_ledger_entry(root, {k: run_json[k] for k in (
+    ledger_keys = (
         "job_id", "name", "mode", "model", "host", "input", "items", "ok", "failed",
         "cached", "escalated", "wall_seconds", "prompt_tokens", "completion_tokens",
-    )} | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
-          if "estimated_cloud_cost_usd" in run_json else {}))
+        "energy_wh", "avg_power_w", "peak_power_w", "energy_usd", "usd_per_kwh", "co2_g",
+    )
+    append_ledger_entry(root, {
+        k: run_json[k] for k in ledger_keys if k in run_json
+    } | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
+         if "estimated_cloud_cost_usd" in run_json else {}))
     return results_dir

@@ -209,6 +209,7 @@ ul.clean b{color:var(--ink);font-weight:600}
     <span class="brand"><span class="dot"></span>tandem-tokens</span>
     <div class="links">
       <a href="#how" class="hide-sm">How it works</a>
+      <a href="#usecases" class="hide-sm">Use cases</a>
       <a href="#quickstart" class="hide-sm">Quickstart</a>
       <a href="#calculator" class="hide-sm">Savings</a>
       <a class="btn btn-primary" href="https://github.com/BI-Blitzer/tandem-tokens">GitHub</a>
@@ -221,30 +222,28 @@ ul.clean b{color:var(--ink);font-weight:600}
     <div class="herogrid">
       <div>
         <span class="eyebrow"><span class="pulse"></span>local + cloud, in tandem</span>
-        <h1>Your GPU does the grunt work.<br><span class="grad">Claude does the thinking.</span></h1>
-        <p class="lede">Offload bulk, mechanical, and generate-and-test work to local models,
-          so premium Claude tokens go only to orchestration and the final clean-up.</p>
+        <h1>Your GPU does the grunt work.<br><span class="grad">Premium models do the thinking.</span></h1>
+        <p class="lede">Offload bulk, mechanical, and generate-and-test work to local Ollama so
+          Claude, Grok, or Codex spend tokens only on orchestration and the final clean-up.</p>
         <div class="cta">
           <a class="btn btn-primary" href="#quickstart">Get started</a>
-          <a class="btn btn-ghost" href="#calculator">See the savings</a>
+          <a class="btn btn-ghost" href="#usecases">Live use cases</a>
         </div>
         <div class="statline">
-          <span><b>$0</b> map phase</span><span class="sep">·</span>
-          <span><b>249</b> tests green</span><span class="sep">·</span>
-          <span><b>4</b> job modes</span><span class="sep">·</span>
-          <span>MIT licensed</span>
+          <span><b>$0</b> map API</span><span class="sep">·</span>
+          <span><b>274+</b> tests</span><span class="sep">·</span>
+          <span><b>Wh + $</b> energy score</span><span class="sep">·</span>
+          <span>MIT</span>
         </div>
       </div>
       <div class="term" aria-hidden="true">
-        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="t">ollamaq — bulk clean</span></div>
-        <div class="body"><span class="p">$</span> ollamaq run contacts.job.json <span class="b">--stream</span>
-<span class="d">streaming 'clean-contacts' (map) …</span>
-done: <span class="g2">2,000/2,000 ok</span>
-
-<span class="rule">digest.md ───────────────────────</span>
-tokens   <span class="a">65,992</span> in / <span class="a">70,084</span> out
-ran for  <span class="g2">$0.00</span>  <span class="d">(local GPU)</span>
-avoided  <span class="a">~$2.08</span> <span class="d">on Claude Opus 4.8</span></div>
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span class="t">ollamaq score — hybrid campaign</span></div>
+        <div class="body"><span class="p">$</span> ollamaq score
+<span class="d">3 campaign jobs · map / pipeline / summarize</span>
+tokens   <span class="a">~40k</span> in / <span class="a">~22k</span> out
+energy   <span class="a">11.3 Wh</span>  <span class="d">(~$0.002 grid)</span>
+avoided  <span class="a">~$0.74</span> <span class="d">Opus map-phase est.</span>
+net      <span class="g2">~$0.74</span>  <span class="d">cloud − local energy</span></div>
       </div>
     </div>
   </div>
@@ -269,9 +268,44 @@ avoided  <span class="a">~$2.08</span> <span class="d">on Claude Opus 4.8</span>
       <div class="card"><div class="ic">vec</div><h3><code>embed</code></h3>
         <p>Embed each item into a vector with a local model — build a RAG/search store without a per-document cloud bill.</p></div>
     </div>
-    <p class="takeaway" style="margin-top:1.5rem;max-width:70ch">Savings are map-phase only. A Claude reduce/clean pass
+    <p class="takeaway" style="margin-top:1.5rem;max-width:70ch">Savings are map-phase only. A premium reduce/clean pass
       over the results still costs tokens — the win scales with keeping that pass small: review a digest and write a
-      fix-up, don't re-read every row.</p>
+      fix-up, don't re-read every row. Scoreboard also tracks <b>GPU Wh</b>, grid <b>$</b>, and optional CO₂.</p>
+  </div>
+</section>
+
+<section id="usecases">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Live campaign</div>
+      <h2>Three use cases, one resource plan</h2>
+      <p>Verified on an RTX&nbsp;5080 (16&nbsp;GB): run long-context first, then pipeline (cheap→strong), then
+        the 14B workhorse so VRAM is not thrashed. Specs ship under <code>jobs/uc*.job.json</code>.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><div class="ic">UC3</div>
+        <h3>Summarize docs</h3>
+        <p><code>hermes3-8b-32k</code> · 36 docs · 49&nbsp;s · <b>1.63&nbsp;Wh</b><br>
+          Long-context compression before a premium theme cluster.</p></div>
+      <div class="card"><div class="ic">UC2</div>
+        <h3>Support pipeline</h3>
+        <p><code>gemma2:9b</code> → <code>qwen2.5-14b</code> · 48 tickets · <b>4.24&nbsp;Wh</b><br>
+          Triage everyone; draft only the 45 that <code>needs_human</code>.</p></div>
+      <div class="card"><div class="ic">UC1</div>
+        <h3>Clean contacts</h3>
+        <p><code>qwen2.5-14b-16k</code> · 300 rows · <b>5.47&nbsp;Wh</b><br>
+          Bulk CRM hygiene; deterministic phone fix in a post-script.</p></div>
+      <div class="card"><div class="ic">Σ</div>
+        <h3>Campaign total</h3>
+        <p>~4.7&nbsp;min · ~11.3&nbsp;Wh · grid ~$0.002<br>
+          Opus map avoided ~<b>$0.74</b> · net ≈ <b>$0.74</b></p></div>
+    </div>
+    <p style="margin:1.5rem 0 0;color:var(--muted);font-size:14.5px">
+      Write-ups:
+      <a href="HYBRID_USE_CASES.md">HYBRID_USE_CASES.md</a> ·
+      <a href="CAMPAIGN_FINDINGS.md">CAMPAIGN_FINDINGS.md</a> ·
+      re-run: <code>ollamaq run jobs/uc3_summarize_docs.job.json</code> then uc2, then uc1.
+    </p>
   </div>
 </section>
 
@@ -303,17 +337,21 @@ python -m pip install -e ".[dev]"</pre></div>
 ollamaq recommend   <span class="d"># what fits your GPU vs. spills to CPU</span></pre></div>
       </div></div>
       <div class="step"><div class="n"></div><div class="c">
-        <h3>Run a bulk job and score it</h3>
-        <div class="codeblock"><button class="copy">Copy</button><pre>ollamaq run examples/support_triage.job.json
-ollamaq score       <span class="d"># tokens run for $0, cloud spend avoided</span></pre></div>
-        <p>Large input? Add <code>--stream</code> for constant-memory processing of multi-GB files.</p>
+        <h3>Run the hybrid campaign (or any job) and score it</h3>
+        <div class="codeblock"><button class="copy">Copy</button><pre><span class="d"># VRAM-friendly order: summarize → pipeline → 14b map</span>
+ollamaq run jobs/uc3_summarize_docs.job.json
+ollamaq run jobs/uc2_pipeline_support.job.json
+ollamaq run jobs/uc1_map_clean_contacts.job.json
+ollamaq score       <span class="d"># tokens, cloud $ avoided, GPU Wh / $ / CO₂</span></pre></div>
+        <p>Large input? Add <code>--stream</code>. Edit <code>config/energy.yaml</code> for your grid $/kWh.</p>
       </div></div>
       <div class="step"><div class="n"></div><div class="c">
-        <h3>Wire it into Claude Code <span style="color:var(--faint);font-weight:400;font-size:14px">(optional)</span></h3>
-        <div class="codeblock"><button class="copy">Copy</button><pre><span class="d"># .mcp.json ships in the repo — Claude Code picks it up automatically.</span>
-<span class="d"># or register it manually with any MCP client:</span>
-claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
-        <p>Then <code>/offload</code> turns a bulk task into a job and <code>/harvest</code> runs the reduce pass on the residue.</p>
+        <h3>Wire Claude, Grok, or Codex <span style="color:var(--faint);font-weight:400;font-size:14px">(optional)</span></h3>
+        <div class="codeblock"><button class="copy">Copy</button><pre><span class="d"># Claude Code: .mcp.json in the repo</span>
+<span class="d"># Grok Build: .grok/config.toml  →  /mcps refresh</span>
+<span class="d"># Codex: clients/codex.config.toml → ~/.codex/config.toml</span>
+ollamaq daemon      <span class="d"># one per machine so queue_submit drains</span></pre></div>
+        <p>Skills: <code>/offload</code> · <code>/harvest</code> · portable <code>skills/hybrid</code> · <code>AGENTS.md</code> for Codex.</p>
       </div></div>
     </div>
   </div>
@@ -324,8 +362,8 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
     <div class="sec-head">
       <div class="kicker">Savings</div>
       <h2>What would it save you?</h2>
-      <p>Grounded in measured throughput (gemma2 ~88 tok/s, qwen3 ~115, qwen2.5-14b ~55 on an RTX 5080)
-        and current per-model pricing. Drag to explore.</p>
+      <p>Grounded in measured throughput (gemma2 ~88 tok/s, qwen3 ~115, qwen2.5-14b ~55 / campaign ~83 on an RTX&nbsp;5080)
+        and cloud pricing plus grid $/kWh (same idea as <code>config/energy.yaml</code>). Drag to explore.</p>
     </div>
     <div class="calc">
       <div class="ctrls">
@@ -335,13 +373,16 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
           <input type="range" id="tin" min="10" max="600" step="5" value="40"></div>
         <div class="ctrl"><label>output tokens / item <b id="o-tout">40</b></label>
           <input type="range" id="tout" min="10" max="600" step="5" value="40"></div>
+        <div class="ctrl"><label>grid price $/kWh <b id="o-kwh">0.16</b></label>
+          <input type="range" id="kwh" min="0.05" max="0.50" step="0.01" value="0.16"></div>
       </div>
       <div class="selrow">
         <div><div class="lab">local model (your GPU)</div>
           <select id="local">
-            <option value="gemma2:9b">gemma2:9b — 88 tok/s ×4</option>
-            <option value="qwen3:8b" selected>qwen3:8b — 115 tok/s ×4</option>
-            <option value="qwen2.5-14b">qwen2.5-14b — 55 tok/s ×2</option>
+            <option value="gemma2:9b">gemma2:9b — 88 tok/s ×4 · ~150 W</option>
+            <option value="hermes3-8b">hermes3-8b — 155 tok/s ×4 · ~120 W</option>
+            <option value="qwen3:8b">qwen3:8b — 115 tok/s ×4 · ~150 W</option>
+            <option value="qwen2.5-14b" selected>qwen2.5-14b — 83 tok/s ×2 · ~150 W</option>
           </select></div>
         <div><div class="lab">cloud model it replaces</div>
           <select id="cloud">
@@ -349,11 +390,13 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
             <option value="sonnet">Claude Sonnet 5 — $3 / $15</option>
             <option value="haiku">Claude Haiku 4.5 — $1 / $5</option>
             <option value="fable">Claude Fable 5 — $10 / $50</option>
+            <option value="grok3">xAI Grok 3 — $3 / $15</option>
           </select></div>
       </div>
       <div class="metrics">
         <div class="metric hero-m"><div class="k">cloud cost avoided</div><div class="v" id="m-avoided">$2.40</div></div>
         <div class="metric"><div class="k">local electricity</div><div class="v" id="m-power">$0.001</div></div>
+        <div class="metric"><div class="k">local energy</div><div class="v" id="m-wh">0 Wh</div></div>
         <div class="metric"><div class="k">local wall time</div><div class="v" id="m-time">2.9 min</div></div>
         <div class="metric"><div class="k">net saved this job</div><div class="v" id="m-net">$2.40</div></div>
       </div>
@@ -397,8 +440,8 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
     <div class="sec-head">
       <div class="kicker">Hooks &amp; MCP</div>
       <h2>Usable from any MCP client</h2>
-      <p>One standard stdio MCP server, five tools. The server command is identical everywhere — only the
-        client config format differs.</p>
+      <p>One standard stdio MCP server (optional Grok facade with <code>hybrid_*</code> aliases).
+        The command is identical everywhere — only the client config format differs.</p>
     </div>
     <div class="tbl">
       <table>
@@ -408,12 +451,15 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
         <tr><td><code>queue_status</code></td><td>queue state — counts, or one job's detail.</td></tr>
         <tr><td><code>queue_digest</code></td><td>a finished job's &le;8&nbsp;KB digest.</td></tr>
         <tr><td><code>recommend_models</code></td><td>GPU-aware advice: which local models fit this machine vs. spill.</td></tr>
+        <tr><td><code>hybrid_score</code></td><td>cumulative scoreboard: tokens, cloud $ avoided, GPU Wh / $ / CO₂.</td></tr>
+        <tr><td><code>hybrid_energy</code></td><td>live nvidia-smi power sample (watts / limit / temp).</td></tr>
+        <tr><td><code>hybrid_policy</code></td><td>when to offload vs. keep work in premium context.</td></tr>
       </table>
     </div>
     <p style="margin:1.25rem 0 0;color:var(--muted);font-size:14.5px">Clients:
       <span class="pill">Claude Code</span><span class="pill">Claude Desktop</span>
-      <span class="pill">OpenAI Codex</span><span class="pill">xAI Grok</span> — plus the CLI and the
-      <code>/offload</code> &amp; <code>/harvest</code> skills.</p>
+      <span class="pill">OpenAI Codex</span><span class="pill">xAI Grok</span><span class="pill">Cursor</span>
+      — plus CLI, <code>clients/</code> drop-ins, and <code>/offload</code> · <code>/harvest</code> · hybrid skill.</p>
   </div>
 </section>
 
@@ -446,28 +492,43 @@ claude mcp add ollamaq -- python -m ollamaq.mcp_server</pre></div>
 
 <script>
 (function(){
-  var LOCAL={"gemma2:9b":{t:88,p:4,w:300},"qwen3:8b":{t:115,p:4,w:300},"qwen2.5-14b":{t:55,p:2,w:320}};
-  var CLOUD={opus:{i:5,o:25,n:"Opus 4.8"},sonnet:{i:3,o:15,n:"Sonnet 5"},haiku:{i:1,o:5,n:"Haiku 4.5"},fable:{i:10,o:50,n:"Fable 5"}};
-  var LOAD=15, KWH=0.15;
+  var LOCAL={
+    "gemma2:9b":{t:88,p:4,w:150},
+    "hermes3-8b":{t:155,p:4,w:120},
+    "qwen3:8b":{t:115,p:4,w:150},
+    "qwen2.5-14b":{t:83,p:2,w:150}
+  };
+  var CLOUD={
+    opus:{i:5,o:25,n:"Opus 4.8"},
+    sonnet:{i:3,o:15,n:"Sonnet 5"},
+    haiku:{i:1,o:5,n:"Haiku 4.5"},
+    fable:{i:10,o:50,n:"Fable 5"},
+    grok3:{i:3,o:15,n:"Grok 3"}
+  };
+  var LOAD=15;
   function $(id){return document.getElementById(id);}
   function money(v){ if(v>=1) return "$"+v.toFixed(2); if(v>=0.01) return "$"+v.toFixed(3); return "$"+v.toFixed(4); }
   function calc(){
     var items=+$("items").value, tin=+$("tin").value, tout=+$("tout").value;
+    var kwh=+$("kwh").value;
     var L=LOCAL[$("local").value], C=CLOUD[$("cloud").value];
     var totOut=items*tout;
     var avoided=(items*tin)/1e6*C.i + totOut/1e6*C.o;
     var secs=totOut/(L.t*L.p)+LOAD;
-    var power=L.w*(secs/3600)/1000*KWH;
+    var wh=L.w*(secs/3600); // watt-hours = W × hours
+    var power=(wh/1000)*kwh; // kWh × $/kWh
     $("o-items").textContent=items.toLocaleString();
     $("o-tin").textContent=tin; $("o-tout").textContent=tout;
+    $("o-kwh").textContent=kwh.toFixed(2);
     $("m-avoided").textContent=money(avoided);
     $("m-power").textContent=money(power);
+    $("m-wh").textContent=(wh>=10?wh.toFixed(1):wh.toFixed(2))+" Wh";
     $("m-time").textContent=(secs/60).toFixed(1)+" min";
     $("m-net").textContent=money(avoided-power);
     var ratio=power>0?Math.round(avoided/power):0;
-    $("takeaway").textContent="This job costs about "+money(power)+" in electricity and avoids "+money(avoided)+" on "+C.n+" — roughly "+ratio.toLocaleString()+"× cheaper. Map-phase only; a Claude reduce pass over the results still costs tokens.";
+    $("takeaway").textContent="This job uses about "+(wh>=10?wh.toFixed(1):wh.toFixed(2))+" Wh (~"+money(power)+" at $"+kwh.toFixed(2)+"/kWh) and avoids "+money(avoided)+" on "+C.n+" — roughly "+ratio.toLocaleString()+"× cheaper on energy vs cloud map spend. Map-phase only; a premium reduce pass still costs tokens.";
   }
-  ["items","tin","tout","local","cloud"].forEach(function(id){$(id).addEventListener("input",calc);});
+  ["items","tin","tout","kwh","local","cloud"].forEach(function(id){$(id).addEventListener("input",calc);});
   calc();
 
   document.querySelectorAll(".copy").forEach(function(btn){

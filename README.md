@@ -13,12 +13,17 @@ map-phase and brute-force work to local models; results stay on disk; Claude
 reads only compact digests. See [PLAN.md](PLAN.md) for the full architecture and
 phase roadmap.
 
-**Status: complete (Phases 0–6, all live-verified).** Sync map runner (`run`), file
+**Status: complete (Phases 0–6 + hybrid/energy pack).** Sync map runner (`run`), file
 queue + daemon (`submit`/`daemon`/`status`/`cancel`), all three job modes (`map`,
 `gen_test` generate-and-verify loop, `pipeline` chained stages), vision inputs, digests
-with cloud-cost savings accounting + a cumulative `score` scoreboard, a dedupe cache,
-model escalation, `--sample` ETA, a GPU-aware `recommend`, a cross-client MCP server,
-and Claude-side integration (`CLAUDE.md` policy + `/offload` & `/harvest` skills).
+with cloud-cost savings + cumulative `score` scoreboard, a dedupe cache, model
+escalation (local or optional `cloud:grok`), `--sample` ETA, GPU-aware `recommend`,
+cross-client MCP (`clients/`), Grok facade (`ollamaq-mcp-grok`), and hybrid skills
+(`skills/hybrid`, `AGENTS.md`, Claude `/offload` `/harvest` `/hybrid`).
+
+**Energy:** each job can meter GPU Wh via nvidia-smi; `config/energy.yaml` turns that
+into local `$` and optional CO₂. `ollamaq score` shows cloud $ avoided, local energy
+cost, and net vs the headline cloud model. Smoke: `examples/energy_smoke.job.json`.
 
 ## Documentation
 
@@ -26,8 +31,11 @@ and Claude-side integration (`CLAUDE.md` policy + `/offload` & `/harvest` skills
 |---|---|
 | [PLAN.md](PLAN.md) | Full architecture + the phase-by-phase build log (design, decisions, live results). |
 | [CLAUDE.md](CLAUDE.md) | Delegation policy — when Claude should/shouldn't offload, routing, the digest-only contract. |
-| [MCP.md](MCP.md) | Using the MCP server from Claude Code/Desktop, Codex, Grok, and other MCP clients. |
+| [MCP.md](MCP.md) | Using the MCP server from Claude Code/Desktop, Codex, Grok, Cursor, and other MCP clients. |
+| [clients/README.md](clients/README.md) | Drop-in MCP configs per client (JSON/TOML) + hybrid skill pointers. |
+| [AGENTS.md](AGENTS.md) | Codex / multi-agent hybrid policy (pairs with `skills/hybrid/SKILL.md`). |
 | [docs/index.html](docs/index.html) | A self-contained landing page: interactive savings calculator, requirements, platform support, MCP hooks. Open locally or serve via GitHub Pages (`/docs`). |
+| [docs/HYBRID_USE_CASES.md](docs/HYBRID_USE_CASES.md) | Three-job hybrid campaign (map / pipeline / summarize): resource order, job specs, live results. |
 | this README | Install, commands, workflow. |
 
 ## Security
@@ -156,11 +164,26 @@ each matched image to a vision model (`task_tag: vision` → `gemma3:4b`); see
 
 ## MCP — use from Claude, Codex, Grok, and other MCP clients
 
-The MCP server (`python -m ollamaq.mcp_server`) exposes `ollama_quick`,
-`queue_submit`, `queue_status`, `queue_digest`, and `recommend_models` to any MCP
-client. Point one `OLLAMAQ_HOME` env var at the project and it works regardless of
-launch directory. Per-client config (Claude Code/Desktop, Codex, Grok) is in
-[MCP.md](MCP.md).
+```text
+python -m ollamaq.mcp_server     # standard tools (Claude, Codex, Cursor, …)
+python -m ollamaq.mcp_grok       # + hybrid_* aliases (Grok-oriented)
+```
+
+Tools: `ollama_quick`, `queue_submit`, `queue_status`, `queue_digest`,
+`recommend_models`, `hybrid_score`, `hybrid_energy`, `hybrid_policy` (Grok also
+gets `hybrid_offload` / `hybrid_digest` / …). Per-client drop-ins:
+[clients/README.md](clients/README.md) · full write-up [MCP.md](MCP.md).
+
+## Energy scoreboard
+
+```pwsh
+# optional rates (defaults ship in config/energy.yaml)
+# usd_per_kwh / g_co2_per_kwh / label
+
+ollamaq run examples/energy_smoke.job.json --job-id energy-smoke
+ollamaq score          # tokens + cloud $ avoided + Wh + local $ + CO2 + net
+ollamaq history        # per-run Wh column when metered
+```
 
 ### Running the daemon under Windows Task Scheduler
 

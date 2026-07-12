@@ -15,5 +15,7 @@ queue/
 results/
 cache/
 demo/
-data/
+data/*
+!data/hybrid_campaign/
+!data/hybrid_campaign/**
 *.log

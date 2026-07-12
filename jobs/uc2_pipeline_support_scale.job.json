@@ -1,0 +1,122 @@
+{
+  "name": "uc2-pipeline-support-scale",
+  "mode": "pipeline",
+  "input": {
+    "kind": "jsonl",
+    "path": "data/hybrid_campaign/support_tickets_scale.jsonl",
+    "chunk": {
+      "strategy": "rows",
+      "size": 1
+    }
+  },
+  "stages": [
+    {
+      "name": "triage",
+      "model": "gemma2:9b",
+      "task_tag": "classify",
+      "prompt": {
+        "system": "You are a support triage engine. Output ONLY JSON. No prose, no fences.",
+        "template": "Triage this support ticket. Carry the original id and text forward.\nReturn {\"id\": <int>, \"text\": \"<original text>\", \"category\": one of bug|billing|feature_request|security|praise|how_to|churn, \"priority\": one of low|medium|high|urgent, \"needs_human\": <bool>}.\nTicket JSON:\n{{chunk}}",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id",
+            "text",
+            "category",
+            "priority",
+            "needs_human"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "text": {
+              "type": "string"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "bug",
+                "billing",
+                "feature_request",
+                "security",
+                "praise",
+                "how_to",
+                "churn"
+              ]
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            },
+            "needs_human": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "params": {
+        "temperature": 0.1,
+        "num_ctx": 8192
+      },
+      "retry": {
+        "max_attempts": 2,
+        "on_schema_fail": "repair_then_retry"
+      },
+      "filter": {
+        "field": "needs_human",
+        "op": "==",
+        "value": true
+      }
+    },
+    {
+      "name": "draft_reply",
+      "model": "qwen2.5-14b-16k",
+      "task_tag": "code",
+      "prompt": {
+        "system": "You draft short, professional support replies. Output ONLY JSON. No prose, no fences.",
+        "template": "Given the triaged ticket JSON below, write a concise first-response draft (2-4 sentences) and a one-line internal note.\nReturn {\"id\": <same id>, \"category\": \"...\", \"priority\": \"...\", \"reply_draft\": \"...\", \"internal_note\": \"...\"}.\nKeep the customer's issue concrete; do not invent refunds or root causes.\nTicket:\n{{chunk}}",
+        "schema": {
+          "type": "object",
+          "required": [
+            "id",
+            "category",
+            "priority",
+            "reply_draft",
+            "internal_note"
+          ],
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "category": {
+              "type": "string"
+            },
+            "priority": {
+              "type": "string"
+            },
+            "reply_draft": {
+              "type": "string"
+            },
+            "internal_note": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "params": {
+        "temperature": 0.2,
+        "num_ctx": 16384
+      },
+      "retry": {
+        "max_attempts": 2,
+        "on_schema_fail": "repair_then_retry"
+      }
+    }
+  ]
+}

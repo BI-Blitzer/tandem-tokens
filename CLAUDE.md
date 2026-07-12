@@ -8,10 +8,12 @@ spent only on orchestration and the final reduce/cleaning pass. Read
 ## The core contract (do not break)
 
 Worker output stays on disk. **You read only `results/<job_id>/digest.md`** (hard-
-capped at 8 KB: stats, samples, failures, and — when pricing is configured — the
-cloud cost the run avoided). Pull `results/<job_id>/merged.jsonl` into context
-**only** when you are deliberately running a reduce/clean pass over it, and prefer
-a slice. Never echo bulk worker output back into the conversation.
+capped at 8 KB: stats, samples, failures, cloud cost avoided when pricing is
+configured, and GPU energy Wh / $ / CO₂ when metered). Pull
+`results/<job_id>/merged.jsonl` into context **only** when you are deliberately
+running a reduce/clean pass over it, and prefer a slice. Never echo bulk worker
+output back into the conversation. After harvest, prefer `ollamaq score` for
+cumulative savings (cloud $ avoided − local energy $).
 
 ## When to offload
 
@@ -48,6 +50,8 @@ Offload when the task is **(a) ≥ ~20 similar independent items**, AND one of:
 3. **`/harvest`** — when jobs are `done`, read their digests, and run the
    Opus/Sonnet reduce/clean pass over the residue the local model got wrong
    (guided by the digest's failures/samples), then write the final artifact.
+   Cross-client policy also lives in `skills/hybrid/SKILL.md` and `AGENTS.md`
+   (Codex/Grok/Cursor). Report energy lines from the digest when present.
 
 ## Auto-offload nudge (hook)
 

@@ -50,6 +50,7 @@ dev = [
 [project.scripts]
 ollamaq = "ollamaq.cli:app"
 ollamaq-mcp = "ollamaq.mcp_server:main"
+ollamaq-mcp-grok = "ollamaq.mcp_grok:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

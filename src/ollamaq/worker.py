@@ -57,6 +57,10 @@ class RunResult:
     prompt_tokens_total: Optional[int] = None
     completion_tokens_total: Optional[int] = None
     eval_ns_total: Optional[int] = None
+    # GPU energy (nvidia-smi); filled by execute_spec when metering available.
+    energy_wh: Optional[float] = None
+    avg_power_w: Optional[float] = None
+    peak_power_w: Optional[float] = None
 
     @property
     def ok_count(self) -> int:
@@ -125,6 +129,57 @@ async def _generate_retrying(client: OllamaClient, model: str, prompt: str, *,
             delay *= 2
 
 
+async def _escalate_once(
+    *,
+    client: OllamaClient,
+    escalate_model: str,
+    escalate_num_ctx: Optional[int],
+    escalate_cloud: Optional[str],
+    cloud_client: Any,
+    config: Optional[Config],
+    initial_prompt: str,
+    system: Optional[str],
+    schema: Any,
+    options: dict,
+    images: Optional[list[str]],
+    transient_retries: int,
+) -> GenerateResult:
+    """One escalation attempt: local stronger model or cloud:grok."""
+    from .cloud import GrokClient, is_cloud_target, parse_cloud_target
+
+    if escalate_cloud or (escalate_model and is_cloud_target(escalate_model)):
+        target = escalate_cloud or escalate_model
+        provider, cloud_model = parse_cloud_target(target)
+        if provider != "grok":
+            raise OllamaqError(f"unsupported cloud provider {provider!r} (only grok)")
+        if cloud_client is None:
+            if config is None:
+                raise OllamaqError("cloud escalate requires config")
+            settings = config.grok_settings_or_none()
+            if settings is None:
+                raise OllamaqError(
+                    "cloud:grok escalate requested but cloud.grok is disabled "
+                    "or no XAI_API_KEY/GROK_API_KEY is set"
+                )
+            async with GrokClient(settings) as gc:
+                return await gc.generate(
+                    cloud_model, initial_prompt, system=system, schema=schema,
+                    options=options,
+                )
+        return await cloud_client.generate(
+            cloud_model, initial_prompt, system=system, schema=schema, options=options,
+        )
+
+    esc_options = dict(options)
+    if escalate_num_ctx is not None:
+        esc_options["num_ctx"] = escalate_num_ctx
+    return await _generate_retrying(
+        client, escalate_model, initial_prompt, system=system,
+        schema=schema, options=esc_options, images=images,
+        transient_retries=transient_retries,
+    )
+
+
 async def _run_item(
     client: OllamaClient,
     model: str,
@@ -136,10 +191,13 @@ async def _run_item(
     escalate_model: "Optional[str]" = None,
     escalate_num_ctx: "Optional[int]" = None,
     images: "Optional[list[str]]" = None,
+    escalate_cloud: "Optional[str]" = None,
+    cloud_client: Any = None,
+    config: "Optional[Config]" = None,
 ) -> ItemResult:
     """Run one work item through the model with the repair-retry loop, then — if
-    `escalate_model` is set — one final attempt on that stronger model before
-    giving up (only for schema failures; transport errors short-circuit earlier).
+    escalate is set — one final attempt on a stronger local model or cloud:grok
+    before giving up (schema failures only; transport errors short-circuit earlier).
     `images` (base64) are sent to the model for vision jobs."""
     schema = spec.prompt.schema_
     options = spec.params.to_options()
@@ -196,17 +254,19 @@ async def _run_item(
                 )
             # OnSchemaFail.retry re-sends the original prompt unchanged
 
-    # Escalation: the primary model couldn't satisfy the schema. Try once on a
-    # stronger local model (with its own context size) before surfacing to Claude.
-    if escalate_model is not None:
-        esc_options = dict(options)
-        if escalate_num_ctx is not None:
-            esc_options["num_ctx"] = escalate_num_ctx
+    # Escalation: primary model couldn't satisfy the schema. Try once on a
+    # stronger local model or cloud:grok before surfacing to the premium agent.
+    esc_label = escalate_cloud or escalate_model
+    if esc_label is not None:
         try:
-            gen = await _generate_retrying(
-                client, escalate_model, initial_prompt, system=spec.prompt.system,
-                schema=schema, options=esc_options, images=images,
-                transient_retries=spec.retry.transient_retries)
+            gen = await _escalate_once(
+                client=client, escalate_model=escalate_model or "",
+                escalate_num_ctx=escalate_num_ctx, escalate_cloud=escalate_cloud,
+                cloud_client=cloud_client, config=config,
+                initial_prompt=initial_prompt, system=spec.prompt.system,
+                schema=schema, options=options, images=images,
+                transient_retries=spec.retry.transient_retries,
+            )
             prompt_tokens += gen.prompt_tokens
             completion_tokens += gen.completion_tokens
             eval_ns += gen.eval_duration_ns
@@ -219,16 +279,31 @@ async def _run_item(
                                   attempts=attempt + 1, prompt_tokens=prompt_tokens,
                                   completion_tokens=completion_tokens,
                                   eval_duration_ns=eval_ns)
-            last_error = (f"{last_error}; escalation to {escalate_model} also failed: "
+            last_error = (f"{last_error}; escalation to {esc_label} also failed: "
                           f"{outcome.error}")
         except OllamaqError as exc:
-            last_error = f"{last_error}; escalation to {escalate_model} errored: {exc}"
+            last_error = f"{last_error}; escalation to {esc_label} errored: {exc}"
 
     return ItemResult(
         index=index, source=source, ok=False, error=last_error or "schema not satisfied",
         attempts=attempt, prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens, eval_duration_ns=eval_ns,
     )
+
+
+def _resolve_escalate(config: Config, spec: JobSpec, primary_model: str
+                      ) -> tuple[Optional[str], Optional[int], Optional[str]]:
+    """Return (local_model|None, num_ctx|None, cloud_target|None)."""
+    from .cloud import is_cloud_target
+
+    # Job escalate_to takes precedence; "auto"/None falls through to config.
+    raw = spec.retry.escalate_to
+    target = config.resolve_escalate_target(raw, spec.task_tag)
+    if not target or target == primary_model:
+        return None, None, None
+    if is_cloud_target(target):
+        return None, None, target
+    return target, config.models[target].num_ctx, None
 
 
 async def run_job(
@@ -252,29 +327,48 @@ async def run_job(
             cap = 10000
         cache = Cache(os.environ.get("OLLAMAQ_CACHE", "cache"), max_entries=cap)
 
-    # Resolve the escalation target up front (fail fast if undefined/disabled).
-    # A no-op when it equals the primary model.
-    escalate_model: Optional[str] = None
-    escalate_num_ctx: Optional[int] = None
-    if spec.retry.escalate_to:
-        esc = config.resolve_model(spec.retry.escalate_to, None)
-        if esc != model:
-            escalate_model = esc
-            escalate_num_ctx = config.models[esc].num_ctx
+    escalate_model, escalate_num_ctx, escalate_cloud = _resolve_escalate(
+        config, spec, model
+    )
 
     start = time.perf_counter()
 
-    async with OllamaClient(config.ollama) as client:
+    # Open a shared Grok client only when cloud escalate is configured.
+    grok_cm = None
+    cloud_client = None
+    if escalate_cloud:
+        settings = config.grok_settings_or_none()
+        if settings is None:
+            raise OllamaqError(
+                f"escalate target {escalate_cloud!r} needs cloud.grok.enabled "
+                "and XAI_API_KEY or GROK_API_KEY"
+            )
+        from .cloud import GrokClient
+        grok_cm = GrokClient(settings)
+        cloud_client = grok_cm
+
+    async def _body(client: OllamaClient) -> list[ItemResult]:
         async def _guarded(item: tuple) -> ItemResult:
-            # items are (index, source, text) or (index, source, text, images).
             idx, source, text = item[0], item[1], item[2]
             imgs = list(item[3]) if len(item) > 3 and item[3] else None
             async with sem:
-                return await _run_item(client, model, spec, idx, source, text, cache,
-                                       escalate_model, escalate_num_ctx, imgs)
+                return await _run_item(
+                    client, model, spec, idx, source, text, cache,
+                    escalate_model, escalate_num_ctx, imgs,
+                    escalate_cloud=escalate_cloud, cloud_client=cloud_client,
+                    config=config,
+                )
+        return list(await asyncio.gather(*[_guarded(it) for it in items]))
 
-        tasks = [_guarded(it) for it in items]
-        results = await asyncio.gather(*tasks)
+    try:
+        if grok_cm is not None:
+            async with OllamaClient(config.ollama) as client, grok_cm:
+                results = await _body(client)
+        else:
+            async with OllamaClient(config.ollama) as client:
+                results = await _body(client)
+    finally:
+        pass
 
     results.sort(key=lambda r: r.index)
     return RunResult(model=model, results=results,

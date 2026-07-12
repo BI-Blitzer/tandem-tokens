@@ -396,6 +396,26 @@ convenient. Vision test images can't be generated locally (no image model here).
   the PIL invoice → schema-valid `{"invoice": "A-2043", "total": 82.5}`, 1/1 ok, 2.0s.
   **Every Phase-6 feature is now live-verified.**
 
+### Phase 7 — Hybrid multi-agent + energy metering  ✅ DONE (2026-07-12)
+
+Independent of Phases 0–6; extends the harness for Grok/Codex/Cursor as premium
+orchestrators and dual-costs the scoreboard (cloud $ avoided + local kWh).
+
+- **Grok MCP facade:** `python -m ollamaq.mcp_grok` / `ollamaq-mcp-grok` — standard
+  tools + `hybrid_*` aliases; `hybrid_score` / `hybrid_energy` / `hybrid_policy`.
+- **Cross-client configs:** `clients/` (Claude, Codex TOML, Grok, Cursor, generic)
+  + `AGENTS.md` + portable `skills/hybrid/SKILL.md`.
+- **Cloud residual escalate:** `config/models.yaml` `cloud.grok` + `fallbacks`;
+  job `retry.escalate_to: auto` or `cloud:grok[/model]`; needs `XAI_API_KEY`.
+  Primary path remains local Ollama.
+- **Energy metering:** `energy.py` samples nvidia-smi power around jobs;
+  digest/run.json/ledger store `energy_wh`, `avg_power_w`, `peak_power_w`.
+- **Energy $ / CO₂:** `config/energy.yaml` (`usd_per_kwh`, `g_co2_per_kwh`);
+  `energy_cost.py`; scoreboard prints local energy cost, CO₂e, and
+  **net vs headline cloud** (cloud avoided − local energy $).
+- **Live smoke:** `examples/energy_smoke.job.json` → job `energy-smoke-1`:
+  5/5 ok, ~1.94 Wh, ~$0.0003 local energy, CO₂ ~0.74 g, cloud Opus avoided ~$0.0038.
+
 #### 6d. ETA from a sample run  ✅ DONE (2026-07-07)
 
 - **Goal:** replace vague "concurrency/num_ctx tuning" with something concrete: a

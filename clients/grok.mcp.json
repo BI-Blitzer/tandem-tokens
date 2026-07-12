@@ -1,0 +1,19 @@
+{
+  "_comment": "For Grok Build TUI prefer .grok/config.toml in the repo (already wired). This JSON is for other Grok clients that want a Claude-style MCP block.",
+  "mcpServers": {
+    "ollamaq": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_server"],
+      "env": {
+        "OLLAMAQ_HOME": "C:\\_Work\\Claude_Coded\\endless-code"
+      }
+    },
+    "ollamaq-grok": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_grok"],
+      "env": {
+        "OLLAMAQ_HOME": "C:\\_Work\\Claude_Coded\\endless-code"
+      }
+    }
+  }
+}

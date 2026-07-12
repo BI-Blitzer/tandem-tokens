@@ -1,0 +1,21 @@
+# OpenAI Codex CLI — merge into ~/.codex/config.toml
+# Docs: https://github.com/openai/codex (MCP via [mcp_servers.<name>])
+#
+# After install:
+#   pip install -e .          # from this repo
+#   ollamaq doctor
+#   ollamaq daemon            # leave running for queue_submit
+#
+# Project instructions: AGENTS.md + skills/hybrid/SKILL.md in the repo root.
+# Codex picks up AGENTS.md automatically when the workspace is this project.
+
+[mcp_servers.ollamaq]
+command = "python"
+args = ["-m", "ollamaq.mcp_server"]
+
+# Editable install auto-detects the project — leave env commented out.
+# Uncomment only for a wheel install or if the server cannot find models.yaml:
+#
+# [mcp_servers.ollamaq.env]
+# OLLAMAQ_HOME = "C:/_Work/Claude_Coded/endless-code"
+# OLLAMAQ_MCP_ALLOW_VERIFIER = "0"

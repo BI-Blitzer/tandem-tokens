@@ -1,0 +1,30 @@
+# Project MCP for Grok Build TUI.
+# After edit: /mcps -> disable ollamaq -> enable ollamaq (or press r / new session).
+# Fresh process must show 8 tools including hybrid_score / hybrid_energy / hybrid_policy.
+
+[mcp_servers.ollamaq]
+command = "C:\\Users\\alex_\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
+args = [
+    "-m",
+    "ollamaq.mcp_server",
+]
+enabled = true
+startup_timeout_sec = 45
+
+[mcp_servers.ollamaq.env]
+OLLAMAQ_HOME = "C:\\_Work\\Claude_Coded\\endless-code"
+PYTHONPATH = "C:\\_Work\\Claude_Coded\\endless-code\\src"
+
+# Optional Grok facade (hybrid_* aliases). Leave disabled if you only want ollamaq.
+[mcp_servers.ollamaq-grok]
+command = "C:\\Users\\alex_\\AppData\\Local\\Programs\\Python\\Python313\\python.exe"
+args = [
+    "-m",
+    "ollamaq.mcp_grok",
+]
+enabled = false
+startup_timeout_sec = 45
+
+[mcp_servers.ollamaq-grok.env]
+OLLAMAQ_HOME = "C:\\_Work\\Claude_Coded\\endless-code"
+PYTHONPATH = "C:\\_Work\\Claude_Coded\\endless-code\\src"

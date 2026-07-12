@@ -1,0 +1,12 @@
+{
+  "_comment": "Works for VS Code MCP extensions, Continue, Cline, Windsurf, and any JSON MCP host. Replace <PROJECT> or drop env after pip install -e .",
+  "mcpServers": {
+    "ollamaq": {
+      "command": "python",
+      "args": ["-m", "ollamaq.mcp_server"],
+      "env": {
+        "OLLAMAQ_HOME": "<PROJECT>"
+      }
+    }
+  }
+}

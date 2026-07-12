@@ -1,0 +1,120 @@
+{"id": 1, "text": "App crashes on Chrome when opening editor after update 2.5.0. [scale#1]"}
+{"id": 2, "text": "Production API /orders returns 500 for all initech traffic. [scale#2]"}
+{"id": 3, "text": "Double charged on invoice #4002, plan shows Free but I pay Pro. [scale#3]"}
+{"id": 4, "text": "Need receipt for payment 2026-04-15 for accounting. [scale#4]"}
+{"id": 5, "text": "Please add reports and keyboard shortcuts for power users. [scale#5]"}
+{"id": 6, "text": "Received password reset I did not request from IP-like activity. [scale#6]"}
+{"id": 7, "text": "Suspicious login from new device, please lock account temporarily. [scale#7]"}
+{"id": 8, "text": "Support was fantastic last week — notifications works great now. [scale#8]"}
+{"id": 9, "text": "How do I export reports to CSV? Cannot find the button. [scale#9]"}
+{"id": 10, "text": "Where is SSO/SAML setup documented for enterprise? [scale#10]"}
+{"id": 11, "text": "Please cancel subscription effective 2026-02-15, switching vendors. [scale#11]"}
+{"id": 12, "text": "CSV import silently drops rows with special characters — lost data. [scale#12]"}
+{"id": 13, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#13]"}
+{"id": 14, "text": "Dark mode and German language for the dashboard UI. [scale#14]"}
+{"id": 15, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#15]"}
+{"id": 16, "text": "App crashes on Safari when opening reports after update 2.4.1. [scale#16]"}
+{"id": 17, "text": "Production API /billing/invoice returns 500 for all acme-prod traffic. [scale#17]"}
+{"id": 18, "text": "Double charged on invoice #4017, plan shows Free but I pay Pro. [scale#18]"}
+{"id": 19, "text": "Need receipt for payment 2026-01-15 for accounting. [scale#19]"}
+{"id": 20, "text": "Please add dashboard and keyboard shortcuts for power users. [scale#20]"}
+{"id": 21, "text": "Received password reset I did not request from IP-like activity. [scale#21]"}
+{"id": 22, "text": "Suspicious login from new device, please lock account temporarily. [scale#22]"}
+{"id": 23, "text": "Support was fantastic last week — editor works great now. [scale#23]"}
+{"id": 24, "text": "How do I export editor to CSV? Cannot find the button. [scale#24]"}
+{"id": 25, "text": "Where is SSO/SAML setup documented for enterprise? [scale#25]"}
+{"id": 26, "text": "Please cancel subscription effective 2026-08-15, switching vendors. [scale#26]"}
+{"id": 27, "text": "CSV import silently drops rows with special characters — lost data. [scale#27]"}
+{"id": 28, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#28]"}
+{"id": 29, "text": "Dark mode and German language for the dashboard UI. [scale#29]"}
+{"id": 30, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#30]"}
+{"id": 31, "text": "App crashes on Chrome when opening reports after update 2.4.1. [scale#31]"}
+{"id": 32, "text": "Production API /v2/events returns 500 for all acme-prod traffic. [scale#32]"}
+{"id": 33, "text": "Double charged on invoice #4032, plan shows Free but I pay Pro. [scale#33]"}
+{"id": 34, "text": "Need receipt for payment 2026-07-15 for accounting. [scale#34]"}
+{"id": 35, "text": "Please add sync and keyboard shortcuts for power users. [scale#35]"}
+{"id": 36, "text": "Received password reset I did not request from IP-like activity. [scale#36]"}
+{"id": 37, "text": "Suspicious login from new device, please lock account temporarily. [scale#37]"}
+{"id": 38, "text": "Support was fantastic last week — notifications works great now. [scale#38]"}
+{"id": 39, "text": "How do I export reports to CSV? Cannot find the button. [scale#39]"}
+{"id": 40, "text": "Where is SSO/SAML setup documented for enterprise? [scale#40]"}
+{"id": 41, "text": "Please cancel subscription effective 2026-05-15, switching vendors. [scale#41]"}
+{"id": 42, "text": "CSV import silently drops rows with special characters — lost data. [scale#42]"}
+{"id": 43, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#43]"}
+{"id": 44, "text": "Dark mode and German language for the dashboard UI. [scale#44]"}
+{"id": 45, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#45]"}
+{"id": 46, "text": "App crashes on Safari when opening reports after update 3.0-rc1. [scale#46]"}
+{"id": 47, "text": "Production API /v2/events returns 500 for all acme-prod traffic. [scale#47]"}
+{"id": 48, "text": "Double charged on invoice #4047, plan shows Free but I pay Pro. [scale#48]"}
+{"id": 49, "text": "App crashes on Chrome when opening editor after update 2.5.0. [scale#49]"}
+{"id": 50, "text": "Production API /orders returns 500 for all initech traffic. [scale#50]"}
+{"id": 51, "text": "Double charged on invoice #4002, plan shows Free but I pay Pro. [scale#51]"}
+{"id": 52, "text": "Need receipt for payment 2026-04-15 for accounting. [scale#52]"}
+{"id": 53, "text": "Please add reports and keyboard shortcuts for power users. [scale#53]"}
+{"id": 54, "text": "Received password reset I did not request from IP-like activity. [scale#54]"}
+{"id": 55, "text": "Suspicious login from new device, please lock account temporarily. [scale#55]"}
+{"id": 56, "text": "Support was fantastic last week — notifications works great now. [scale#56]"}
+{"id": 57, "text": "How do I export reports to CSV? Cannot find the button. [scale#57]"}
+{"id": 58, "text": "Where is SSO/SAML setup documented for enterprise? [scale#58]"}
+{"id": 59, "text": "Please cancel subscription effective 2026-02-15, switching vendors. [scale#59]"}
+{"id": 60, "text": "CSV import silently drops rows with special characters — lost data. [scale#60]"}
+{"id": 61, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#61]"}
+{"id": 62, "text": "Dark mode and German language for the dashboard UI. [scale#62]"}
+{"id": 63, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#63]"}
+{"id": 64, "text": "App crashes on Safari when opening reports after update 2.4.1. [scale#64]"}
+{"id": 65, "text": "Production API /billing/invoice returns 500 for all acme-prod traffic. [scale#65]"}
+{"id": 66, "text": "Double charged on invoice #4017, plan shows Free but I pay Pro. [scale#66]"}
+{"id": 67, "text": "Need receipt for payment 2026-01-15 for accounting. [scale#67]"}
+{"id": 68, "text": "Please add dashboard and keyboard shortcuts for power users. [scale#68]"}
+{"id": 69, "text": "Received password reset I did not request from IP-like activity. [scale#69]"}
+{"id": 70, "text": "Suspicious login from new device, please lock account temporarily. [scale#70]"}
+{"id": 71, "text": "Support was fantastic last week — editor works great now. [scale#71]"}
+{"id": 72, "text": "How do I export editor to CSV? Cannot find the button. [scale#72]"}
+{"id": 73, "text": "Where is SSO/SAML setup documented for enterprise? [scale#73]"}
+{"id": 74, "text": "Please cancel subscription effective 2026-08-15, switching vendors. [scale#74]"}
+{"id": 75, "text": "CSV import silently drops rows with special characters — lost data. [scale#75]"}
+{"id": 76, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#76]"}
+{"id": 77, "text": "Dark mode and German language for the dashboard UI. [scale#77]"}
+{"id": 78, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#78]"}
+{"id": 79, "text": "App crashes on Chrome when opening reports after update 2.4.1. [scale#79]"}
+{"id": 80, "text": "Production API /v2/events returns 500 for all acme-prod traffic. [scale#80]"}
+{"id": 81, "text": "Double charged on invoice #4032, plan shows Free but I pay Pro. [scale#81]"}
+{"id": 82, "text": "Need receipt for payment 2026-07-15 for accounting. [scale#82]"}
+{"id": 83, "text": "Please add sync and keyboard shortcuts for power users. [scale#83]"}
+{"id": 84, "text": "Received password reset I did not request from IP-like activity. [scale#84]"}
+{"id": 85, "text": "Suspicious login from new device, please lock account temporarily. [scale#85]"}
+{"id": 86, "text": "Support was fantastic last week — notifications works great now. [scale#86]"}
+{"id": 87, "text": "How do I export reports to CSV? Cannot find the button. [scale#87]"}
+{"id": 88, "text": "Where is SSO/SAML setup documented for enterprise? [scale#88]"}
+{"id": 89, "text": "Please cancel subscription effective 2026-05-15, switching vendors. [scale#89]"}
+{"id": 90, "text": "CSV import silently drops rows with special characters — lost data. [scale#90]"}
+{"id": 91, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#91]"}
+{"id": 92, "text": "Dark mode and German language for the dashboard UI. [scale#92]"}
+{"id": 93, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#93]"}
+{"id": 94, "text": "App crashes on Safari when opening reports after update 3.0-rc1. [scale#94]"}
+{"id": 95, "text": "Production API /v2/events returns 500 for all acme-prod traffic. [scale#95]"}
+{"id": 96, "text": "Double charged on invoice #4047, plan shows Free but I pay Pro. [scale#96]"}
+{"id": 97, "text": "App crashes on Chrome when opening editor after update 2.5.0. [scale#97]"}
+{"id": 98, "text": "Production API /orders returns 500 for all initech traffic. [scale#98]"}
+{"id": 99, "text": "Double charged on invoice #4002, plan shows Free but I pay Pro. [scale#99]"}
+{"id": 100, "text": "Need receipt for payment 2026-04-15 for accounting. [scale#100]"}
+{"id": 101, "text": "Please add reports and keyboard shortcuts for power users. [scale#101]"}
+{"id": 102, "text": "Received password reset I did not request from IP-like activity. [scale#102]"}
+{"id": 103, "text": "Suspicious login from new device, please lock account temporarily. [scale#103]"}
+{"id": 104, "text": "Support was fantastic last week — notifications works great now. [scale#104]"}
+{"id": 105, "text": "How do I export reports to CSV? Cannot find the button. [scale#105]"}
+{"id": 106, "text": "Where is SSO/SAML setup documented for enterprise? [scale#106]"}
+{"id": 107, "text": "Please cancel subscription effective 2026-02-15, switching vendors. [scale#107]"}
+{"id": 108, "text": "CSV import silently drops rows with special characters — lost data. [scale#108]"}
+{"id": 109, "text": "Webhook deliveries stopped after API key rotation yesterday. [scale#109]"}
+{"id": 110, "text": "Dark mode and German language for the dashboard UI. [scale#110]"}
+{"id": 111, "text": "Enterprise contract renewal blocked — billing portal errors out. [scale#111]"}
+{"id": 112, "text": "App crashes on Safari when opening reports after update 2.4.1. [scale#112]"}
+{"id": 113, "text": "Production API /billing/invoice returns 500 for all acme-prod traffic. [scale#113]"}
+{"id": 114, "text": "Double charged on invoice #4017, plan shows Free but I pay Pro. [scale#114]"}
+{"id": 115, "text": "Need receipt for payment 2026-01-15 for accounting. [scale#115]"}
+{"id": 116, "text": "Please add dashboard and keyboard shortcuts for power users. [scale#116]"}
+{"id": 117, "text": "Received password reset I did not request from IP-like activity. [scale#117]"}
+{"id": 118, "text": "Suspicious login from new device, please lock account temporarily. [scale#118]"}
+{"id": 119, "text": "Support was fantastic last week — editor works great now. [scale#119]"}
+{"id": 120, "text": "How do I export editor to CSV? Cannot find the button. [scale#120]"}

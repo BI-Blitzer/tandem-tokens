@@ -54,6 +54,16 @@ def render(snap: Snapshot, now: str | None = None) -> str:
         lines.append("")
     sb = snap.scoreboard
     lines.append(f"scoreboard: {sb.jobs} jobs, {sb.total_tokens} local tokens run for $0")
+    if sb.energy_jobs:
+        lines.append(f"  energy: {sb.energy_wh:.3f} Wh ({sb.energy_kwh:.5f} kWh)")
+        try:
+            from .energy_cost import cost_for_wh, load_energy_rates
+            rates = load_energy_rates()
+            if rates is not None:
+                el = cost_for_wh(rates, sb.energy_wh)
+                lines.append(f"  energy $: ~${el.usd:.6f}")
+        except Exception:
+            pass
     if sb.cost_by_model:
         top = max(sb.cost_by_model.items(), key=lambda kv: kv[1])
         lines.append(f"  cloud spend avoided (top): {top[0]} ~${top[1]:.4f}")

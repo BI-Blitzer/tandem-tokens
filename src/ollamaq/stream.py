@@ -51,8 +51,11 @@ async def run_stream(config: Config, spec: JobSpec, results_dir: Path,
         batch_size = max_parallel * 8
     is_embed = spec.mode == Mode.embed
 
+    from .energy import EnergyMeter
+    from .worker import _resolve_escalate
+
     cache = None
-    escalate_model = escalate_num_ctx = None
+    escalate_model = escalate_num_ctx = escalate_cloud = None
     if not is_embed:
         if spec.cache:
             try:
@@ -60,32 +63,50 @@ async def run_stream(config: Config, spec: JobSpec, results_dir: Path,
             except ValueError:
                 cap = 10000
             cache = Cache(os.environ.get("OLLAMAQ_CACHE", "cache"), max_entries=cap)
-        if spec.retry.escalate_to:
-            esc = config.resolve_model(spec.retry.escalate_to, None)
-            if esc != model:
-                escalate_model = esc
-                escalate_num_ctx = config.models[esc].num_ctx
+        escalate_model, escalate_num_ctx, escalate_cloud = _resolve_escalate(
+            config, spec, model
+        )
 
     results_dir.mkdir(parents=True, exist_ok=True)
     st = {"ok": 0, "fail": 0, "items": 0, "cached": 0, "escalated": 0,
-          "ptok": 0, "ctok": 0, "wall": 0.0, "samples": [], "failures": [], "dims": set()}
+          "ptok": 0, "ctok": 0, "wall": 0.0, "samples": [], "failures": [], "dims": set(),
+          "energy_wh": None, "avg_power_w": None, "peak_power_w": None}
     sem = asyncio.Semaphore(max_parallel)
+    meter = EnergyMeter().start()
     start = time.perf_counter()
+
+    cloud_client = None
+    grok_cm = None
+    if escalate_cloud:
+        settings = config.grok_settings_or_none()
+        if settings is None:
+            from .errors import OllamaqError
+            raise OllamaqError(
+                f"escalate target {escalate_cloud!r} needs cloud.grok.enabled "
+                "and XAI_API_KEY or GROK_API_KEY"
+            )
+        from .cloud import GrokClient
+        grok_cm = GrokClient(settings)
+        cloud_client = grok_cm
 
     merged_f = (results_dir / "merged.jsonl").open("w", encoding="utf-8")
     failed_f = (results_dir / "failed_items.jsonl").open("w", encoding="utf-8")
     try:
-        async with OllamaClient(config.ollama) as client:
+        async def _consume(client: OllamaClient) -> None:
             async def _run(w) -> ItemResult:
                 async with sem:
                     if is_embed:
                         return await _embed_one(client, model, w.index, w.source,
                                                 w.text, spec.retry.transient_retries)
-                    return await _run_item(client, model, spec, w.index, w.source,
-                                           w.text, cache, escalate_model,
-                                           escalate_num_ctx, list(w.images) or None)
+                    return await _run_item(
+                        client, model, spec, w.index, w.source, w.text, cache,
+                        escalate_model, escalate_num_ctx, list(w.images) or None,
+                        escalate_cloud=escalate_cloud, cloud_client=cloud_client,
+                        config=config,
+                    )
 
             for batch in _batched(iter_chunks(spec.input), batch_size):
+                meter.tick()
                 results = await asyncio.gather(*[_run(w) for w in batch])
                 for r in results:
                     st["items"] += 1
@@ -112,11 +133,23 @@ async def run_stream(config: Config, spec: JobSpec, results_dir: Path,
                             ensure_ascii=False) + "\n")
                         if len(st["failures"]) < _FAILURE_CAP:
                             st["failures"].append((r.index, r.source, r.error))
+
+        if grok_cm is not None:
+            async with OllamaClient(config.ollama) as client, grok_cm:
+                await _consume(client)
+        else:
+            async with OllamaClient(config.ollama) as client:
+                await _consume(client)
     finally:
         merged_f.close()
         failed_f.close()
 
     st["wall"] = round(time.perf_counter() - start, 3)
+    energy = meter.stop()
+    if energy.available:
+        st["energy_wh"] = energy.energy_wh
+        st["avg_power_w"] = energy.avg_power_w
+        st["peak_power_w"] = energy.peak_power_w
     _write_stream_digest(spec, model, st, results_dir, pricing)
     return {"ok": st["ok"], "fail": st["fail"], "items": st["items"], "model": model}
 
@@ -132,6 +165,21 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
         L.append(f"- cache: {st['cached']}/{st['items']} served from cache")
     if st["escalated"]:
         L.append(f"- escalated: {st['escalated']} item(s)")
+    if st.get("energy_wh") is not None:
+        L.append(
+            f"- energy: ~{st['energy_wh']:.4f} Wh "
+            f"(avg {st.get('avg_power_w', 0):.0f} W, peak {st.get('peak_power_w', 0):.0f} W)"
+        )
+        try:
+            from .energy_cost import cost_for_wh, load_energy_rates
+            rates = load_energy_rates()
+            if rates is not None:
+                el = cost_for_wh(rates, float(st["energy_wh"]))
+                L.append(f"- energy cost: ~${el.usd:.6f} @ ${el.usd_per_kwh:.4f}/kWh")
+                if el.co2_g is not None:
+                    L.append(f"- CO2e: ~{el.co2_g:.3f} g")
+        except Exception:
+            pass
     L.append(f"- artifacts: {results_dir.as_posix()}  (merged.jsonl, failed_items.jsonl)")
     L.append("")
     if pricing is not None and not is_embed:
@@ -176,12 +224,31 @@ def _write_stream_digest(spec: JobSpec, model: str, st: dict, results_dir: Path,
         "wall_seconds": st["wall"],
         "prompt_tokens": st["ptok"], "completion_tokens": st["ctok"],
     }
+    if st.get("energy_wh") is not None:
+        run_json["energy_wh"] = round(float(st["energy_wh"]), 4)
+        run_json["avg_power_w"] = round(float(st.get("avg_power_w") or 0), 2)
+        run_json["peak_power_w"] = round(float(st.get("peak_power_w") or 0), 2)
+        try:
+            from .energy_cost import cost_for_wh, load_energy_rates
+            rates = load_energy_rates()
+            if rates is not None:
+                el = cost_for_wh(rates, float(st["energy_wh"]))
+                run_json["energy_usd"] = round(el.usd, 6)
+                run_json["usd_per_kwh"] = el.usd_per_kwh
+                if el.co2_g is not None:
+                    run_json["co2_g"] = round(el.co2_g, 3)
+        except Exception:
+            pass
     if pricing is not None and not is_embed:
         run_json["estimated_cloud_cost_usd"] = {
             r.model: r.usd for r in estimate_all(pricing, st["ptok"], st["ctok"])}
     (results_dir / "run.json").write_text(json.dumps(run_json, indent=2), encoding="utf-8")
-    append_ledger_entry(results_dir.parent, {k: run_json[k] for k in (
+    ledger_keys = (
         "job_id", "name", "mode", "model", "host", "input", "items", "ok", "failed",
-        "cached", "escalated", "wall_seconds", "prompt_tokens", "completion_tokens")}
-        | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
-           if "estimated_cloud_cost_usd" in run_json else {}))
+        "cached", "escalated", "wall_seconds", "prompt_tokens", "completion_tokens",
+        "energy_wh", "avg_power_w", "peak_power_w", "energy_usd", "usd_per_kwh", "co2_g",
+    )
+    append_ledger_entry(results_dir.parent, {
+        k: run_json[k] for k in ledger_keys if k in run_json
+    } | ({"estimated_cloud_cost_usd": run_json["estimated_cloud_cost_usd"]}
+         if "estimated_cloud_cost_usd" in run_json else {}))
