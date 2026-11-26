@@ -1,7 +1,7 @@
 {
   "name": "seven-words",
   "mode": "gen_test",
-  "model": "qwen3:8b",
+  "model": "gemma4-12b-32k",
   "task_tag": "generate",
   "input": {
     "kind": "inline",
@@ -17,7 +17,7 @@
       "properties": { "sentence": { "type": "string" } }
     }
   },
-  "params": { "temperature": 0.9, "num_ctx": 8192 },
+  "params": { "temperature": 0.9, "num_ctx": 32768 },
   "verifier": {
     "cmd": "python examples/word_count_verifier.py",
     "keep_top": 5,

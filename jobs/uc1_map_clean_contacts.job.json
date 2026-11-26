@@ -1,7 +1,7 @@
 {
   "name": "uc1-map-clean-contacts",
   "mode": "map",
-  "model": "qwen2.5-14b-16k",
+  "model": "gemma4-12b-32k",
   "task_tag": "clean",
   "input": {
     "kind": "csv",
@@ -31,6 +31,6 @@
       }
     }
   },
-  "params": { "temperature": 0.1, "num_ctx": 16384 },
+  "params": { "temperature": 0.1, "num_ctx": 32768 },
   "retry": { "max_attempts": 3, "on_schema_fail": "repair_then_retry" }
 }

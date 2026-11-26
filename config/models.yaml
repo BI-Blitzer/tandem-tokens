@@ -8,55 +8,66 @@ ollama:
   keep_alive: 30m
 
 defaults:
-  model: qwen2.5-14b-16k
+  model: gemma4-12b-32k
   temperature: 0.1
 
 models:
-  qwen2.5-14b-16k:
+  # 2026-11-26: one model for every text, code and vision route. It is the model the
+  # research-engine fabric keeps resident on this GPU, so sharing it costs no VRAM and never
+  # evicts the fabric's runner, as long as every request asks for num_ctx 32768 (the tag's
+  # Modelfile value, which the fabric uses) or omits it. Any other value makes Ollama reload the
+  # model at that size. Job specs carry their own params.num_ctx (this entry's num_ctx only
+  # applies to escalation requests), so keep jobs routed here at 32768. It reasons by default;
+  # think: false keeps the token budget for the JSON answer. Replaced qwen2.5-14b-16k (clean/
+  # extract/code), hermes3-8b-32k (summarize), gemma2:9b (classify), qwen3:8b (generate) and
+  # gemma3:4b (vision); those tags, gemma2:27b and llama3.2-vision were deleted the same day.
+  gemma4-12b-32k:
     max_parallel: 2
-    num_ctx: 16384
-    notes: Workhorse - cleaning, structured extraction, codegen drafts. ~9 GB, fully GPU-resident.
+    num_ctx: 32768
+    think: false
+    notes: Gemma 4 12B QAT, 32K ctx. Text, vision and tools. ~7.2 GB, fully GPU-resident.
   hermes3-8b-32k:
     max_parallel: 4
     num_ctx: 32768
-    notes: Long-context reader for bulk summarization/extraction.
-  "qwen3:8b":
-    max_parallel: 4
-    num_ctx: 16384
-    notes: Candidate generator / verifier for gen_test loops (thinking mode).
-  "gemma2:9b":
-    max_parallel: 4
-    num_ctx: 8192
-    notes: Fast classifier / labeler / triage.
-  "gemma2:27b":
-    max_parallel: 1
-    num_ctx: 8192
     enabled: false
-    notes: Spills to CPU on 16 GB - opt-in escalation tier only.
-  "gemma3:4b":
-    max_parallel: 2
-    num_ctx: 8192
-    notes: Vision (image extraction) + text. Works with this Ollama build. ~3.3 GB.
+    notes: Former summarize route, kept installed but unrouted. Loading it evicts gemma4.
   "nomic-embed-text:latest":
     max_parallel: 4
     num_ctx: 8192
     notes: Embedding model (768-dim) for mode=embed. Small and fast.
-  "llama3.2-vision:11b":
-    max_parallel: 1
-    num_ctx: 8192
-    enabled: false
-    notes: Vision, but its 'mllama' arch won't load on Ollama 0.31.1 - use gemma3:4b.
+  # tandem-control MT-3 — weight-backed GGUF (q8_0 from PEFT-merged 0.5B).
+  # Recreate: ollama create bi-matcher-lora -f .../ollama_export/Modelfile.gguf
+  "bi-matcher-lora":
+    max_parallel: 2
+    num_ctx: 4096
+    notes: >
+      Weight-backed GGUF from tandem-control MT-3 LoRA merge
+      (results/finetune/mt3-smoke/ollama_export/bi-matcher-lora.gguf).
+  "bi-matcher-long":
+    max_parallel: 2
+    num_ctx: 4096
+    notes: 150-step smoke train GGUF (mt3-long). Prefer for longer-trained extract smoke.
+  "bi-matcher-residue":
+    max_parallel: 2
+    num_ctx: 4096
+    notes: Swarm residue train GGUF (mt3-residue). Best candidate for real residue routing.
+  "qwen2.5:0.5b":
+    max_parallel: 4
+    num_ctx: 4096
+    notes: Tiny base used for bi-matcher-lora smoke / local finetune demos.
 
 # task_tag -> model. Used when a job spec says model: auto.
 routing:
-  clean: qwen2.5-14b-16k
-  extract: qwen2.5-14b-16k
-  summarize: hermes3-8b-32k
-  classify: "gemma2:9b"
-  generate: "qwen3:8b"
-  code: qwen2.5-14b-16k
-  vision: "gemma3:4b"
+  clean: gemma4-12b-32k
+  extract: gemma4-12b-32k
+  summarize: gemma4-12b-32k
+  classify: gemma4-12b-32k
+  generate: gemma4-12b-32k
+  code: gemma4-12b-32k
+  vision: gemma4-12b-32k
   embed: "nomic-embed-text:latest"
+  # Optional: force residue-style extract through LoRA tag once validated
+  # extract_lora: "bi-matcher-lora"
 
 # Optional cloud backends for hybrid fallback (never the primary map path).
 # Enable only when you want residual escalate_to failures to hit xAI Grok.

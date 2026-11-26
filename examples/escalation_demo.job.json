@@ -1,7 +1,7 @@
 {
   "name": "escalation-demo",
   "mode": "map",
-  "model": "gemma2:9b",
+  "model": "gemma4-12b-32k",
   "task_tag": "clean",
   "input": {
     "kind": "inline",
@@ -26,5 +26,5 @@
     }
   },
   "params": { "temperature": 0.1 },
-  "retry": { "max_attempts": 2, "on_schema_fail": "repair_then_retry", "escalate_to": "qwen2.5-14b-16k" }
+  "retry": { "max_attempts": 2, "on_schema_fail": "repair_then_retry", "escalate_to": "gemma4-12b-32k" }
 }

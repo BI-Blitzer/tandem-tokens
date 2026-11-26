@@ -16,7 +16,7 @@ import os
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, ValidationError, model_validator
 
 from .errors import (
     ConfigError,
@@ -53,6 +53,12 @@ class OllamaSettings(BaseModel):
     # an authenticating reverse proxy. Prefer $OLLAMAQ_API_KEY over putting a
     # secret in a yaml that may be committed.
     api_key: str | None = None
+    # Per-model `think` values, filled in from models.yaml by Config (not a yaml key here),
+    # so OllamaClient can send them without every call site threading the flag through.
+    _think: dict[str, bool] = PrivateAttr(default_factory=dict)
+
+    def think_for(self, model: str) -> bool | None:
+        return self._think.get(normalize_model_name(model))
 
 
 class ModelEntry(BaseModel):
@@ -61,6 +67,10 @@ class ModelEntry(BaseModel):
     max_parallel: int = 1
     num_ctx: int = 8192
     enabled: bool = True
+    # Sent as Ollama's top-level `think` field. None = omit it (the model's default).
+    # Reasoning models (gemma4, qwen3) think by default, which spends the token budget
+    # before a JSON answer starts; set false for map work.
+    think: bool | None = None
     notes: str = ""
 
 
@@ -108,7 +118,7 @@ class FallbackSettings(BaseModel):
 class Config(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    ollama: OllamaSettings = OllamaSettings()
+    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     defaults: Defaults
     models: dict[str, ModelEntry]
     routing: dict[str, str]
@@ -134,6 +144,10 @@ class Config(BaseModel):
         ]:
             if target and not target.startswith("cloud:") and target not in self.models:
                 raise ValueError(f"{label} points to undefined model {target!r}")
+        self.ollama._think = {
+            normalize_model_name(name): entry.think
+            for name, entry in self.models.items() if entry.think is not None
+        }
         return self
 
     def resolve_model(self, model: str | None, task_tag: str | None) -> str:

@@ -1,7 +1,7 @@
 {
   "name": "clean-contacts",
   "mode": "map",
-  "model": "gemma2:9b",
+  "model": "gemma4-12b-32k",
   "task_tag": "clean",
   "input": {
     "kind": "csv",
@@ -31,6 +31,6 @@
       }
     }
   },
-  "params": { "temperature": 0.1, "num_ctx": 8192 },
+  "params": { "temperature": 0.1, "num_ctx": 32768 },
   "retry": { "max_attempts": 3, "on_schema_fail": "repair_then_retry" }
 }

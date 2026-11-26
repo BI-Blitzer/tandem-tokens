@@ -140,6 +140,7 @@ class OllamaClient:
         options: dict[str, Any] | None = None,
         images: list[str] | None = None,
         keep_alive: str | None = None,
+        think: bool | None = None,
     ) -> GenerateResult:
         """Single non-streaming generation.
 
@@ -148,6 +149,7 @@ class OllamaClient:
         - ``options`` maps straight to Ollama options (num_ctx, temperature, ...).
         - ``images`` is a list of base64-encoded image strings (vision models).
         - ``keep_alive`` defaults to settings.keep_alive.
+        - ``think`` defaults to the model's ``think`` in models.yaml; None omits it.
 
         Raises OllamaConnectionError (unreachable/timeout) or OllamaHTTPError
         (non-200, e.g. model not found).
@@ -166,6 +168,10 @@ class OllamaClient:
             payload["options"] = options
         if images:
             payload["images"] = images
+        if think is None:
+            think = self.settings.think_for(model)
+        if think is not None:
+            payload["think"] = think
         try:
             resp = await self._client.post("/api/generate", json=payload)
         except httpx.HTTPError as exc:

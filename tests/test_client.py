@@ -154,3 +154,58 @@ async def test_generate_connection_error() -> None:
     async with OllamaClient(_settings()) as c:
         with pytest.raises(OllamaConnectionError):
             await c.generate("m", "hi")
+
+
+# --- think: per-model reasoning toggle (models.yaml `think:`) -----------------
+
+def _gen_ok() -> httpx.Response:
+    return httpx.Response(200, json={"response": "{}", "eval_count": 1, "eval_duration": 1})
+
+
+def _think_config():
+    from ollamaq.config import Config
+    return Config.model_validate({
+        "ollama": {"base_url": BASE, "timeout_s": 5},
+        "defaults": {"model": "reasoner"},
+        "models": {"reasoner": {"think": False}, "plain": {}, "deep:8b": {"think": True}},
+        "routing": {},
+    })
+
+
+@respx.mock
+async def test_think_omitted_when_model_sets_none() -> None:
+    import json
+    route = respx.post(f"{BASE}/api/generate").mock(return_value=_gen_ok())
+    async with OllamaClient(_think_config().ollama) as c:
+        await c.generate("plain", "hi")
+    assert "think" not in json.loads(route.calls.last.request.content)
+
+
+@respx.mock
+async def test_think_comes_from_models_yaml() -> None:
+    import json
+    route = respx.post(f"{BASE}/api/generate").mock(return_value=_gen_ok())
+    async with OllamaClient(_think_config().ollama) as c:
+        await c.generate("reasoner", "hi")          # bare name matches the :latest tag
+        assert json.loads(route.calls.last.request.content)["think"] is False
+        await c.generate("reasoner:latest", "hi")
+        assert json.loads(route.calls.last.request.content)["think"] is False
+        await c.generate("deep:8b", "hi")
+        assert json.loads(route.calls.last.request.content)["think"] is True
+
+
+@respx.mock
+async def test_explicit_think_overrides_models_yaml() -> None:
+    import json
+    route = respx.post(f"{BASE}/api/generate").mock(return_value=_gen_ok())
+    async with OllamaClient(_think_config().ollama) as c:
+        await c.generate("reasoner", "hi", think=True)
+    assert json.loads(route.calls.last.request.content)["think"] is True
+
+
+def test_think_map_is_per_config_instance() -> None:
+    from ollamaq.config import Config
+    a = _think_config()
+    b = Config.model_validate({"defaults": {"model": "x"}, "models": {"x": {}}, "routing": {}})
+    assert a.ollama.think_for("reasoner") is False
+    assert b.ollama.think_for("reasoner") is None

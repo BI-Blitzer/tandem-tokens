@@ -9,7 +9,7 @@
   "stages": [
     {
       "name": "triage",
-      "model": "gemma2:9b",
+      "model": "gemma4-12b-32k",
       "task_tag": "classify",
       "prompt": {
         "system": "You output ONLY JSON. No prose, no code fences.",
@@ -27,7 +27,7 @@
     },
     {
       "name": "reformat",
-      "model": "qwen2.5-14b-16k",
+      "model": "gemma4-12b-32k",
       "task_tag": "clean",
       "prompt": {
         "system": "You output ONLY JSON. No prose, no code fences.",
